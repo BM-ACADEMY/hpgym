@@ -1,6 +1,7 @@
 import Footer from '@/components/Layout/Footer'
 import Navbar from '@/components/Layout/Navbar'
 import AboutSection from '@/components/pages/AboutSection'
+import Enquirypage from '@/components/pages/Enquirysection'
 import GymGallery from '@/components/pages/Gallery'
 import HomeSection from '@/components/pages/Home'
 import ServicesSection from '@/components/pages/Services'
@@ -16,6 +17,7 @@ const Homeroutes = () => {
         <ServicesSection/>
         <TestimonialSection/>
         <GymGallery/>
+        <Enquirypage/>
         <Footer/>
     </div>
   )
