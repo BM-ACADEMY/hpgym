@@ -1,11 +1,47 @@
 const User = require("../models/User");
 const bcrypt = require("bcryptjs");
 
+const calculateStatus = (endDate) => {
+    if (!endDate) return "inactive";
+    const now = new Date();
+    const end = new Date(endDate);
+    const diffTime = end - now;
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+    if (diffDays < 0) return "expired";
+    if (diffDays <= 7) return "expiring_soon";
+    return "active";
+};
+
+const updateSubscription = async (req, res) => {
+    try {
+        const { startDate, endDate, isActive } = req.body;
+        const user = await User.findById(req.params.id);
+
+        if (!user) return res.status(404).json({ message: "User not found" });
+
+        if (!isActive) {
+            user.subscription = { planStatus: 'inactive', startDate: null, endDate: null };
+        } else {
+            user.subscription = {
+                startDate,
+                endDate,
+                planStatus: calculateStatus(endDate)
+            };
+        }
+
+        await user.save();
+        res.json(user);
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};
+
 // --- Helper Function: Generate Customer ID ---
 const generateCustomerId = async () => {
   const lastUser = await User.findOne(
-    { customerId: { $exists: true } }, 
-    {}, 
+    { customerId: { $exists: true } },
+    {},
     { sort: { 'createdAt': -1 } }
   );
 
@@ -37,8 +73,8 @@ const createUser = async (req, res) => {
 
   try {
     // 1. Check if user exists
-    const userExists = await User.findOne({ 
-        $or: [{ email }, { phoneNumber }] 
+    const userExists = await User.findOne({
+        $or: [{ email }, { phoneNumber }]
     });
 
     if (userExists) {
@@ -51,7 +87,7 @@ const createUser = async (req, res) => {
 
     // 3. Generate Customer ID
     const newCustomerId = await generateCustomerId();
-    const userRole = role || "user"; 
+    const userRole = role || "user";
 
     // 4. Create User
     const user = await User.create({
@@ -68,7 +104,7 @@ const createUser = async (req, res) => {
       // Note: We do NOT generate a token here because the Admin is creating the user, not logging in as them.
       res.status(201).json({
         _id: user._id,
-        customerId: user.customerId, 
+        customerId: user.customerId,
         name: user.name,
         email: user.email,
         phoneNumber: user.phoneNumber,
@@ -91,7 +127,7 @@ const updateUser = async (req, res) => {
       user.name = req.body.name || user.name;
       user.email = req.body.email || user.email;
       user.phoneNumber = req.body.phoneNumber || user.phoneNumber;
-      
+
       const updatedUser = await user.save();
       res.json(updatedUser);
     } else {
@@ -154,4 +190,4 @@ const deleteUser = async (req, res) => {
   }
 };
 
-module.exports = { getAllUsers, updateUser, toggleBlockUser, deleteUser, changeUserPassword, createUser };
+module.exports = { getAllUsers, updateUser, toggleBlockUser, deleteUser, changeUserPassword, createUser, updateSubscription };

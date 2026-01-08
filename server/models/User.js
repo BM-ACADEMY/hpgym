@@ -29,11 +29,20 @@ const userSchema = new mongoose.Schema({
         enum: ['user', 'admin'],
         default: 'user'
     },
-    isBlocked: { 
-        type: Boolean, 
-        default: false 
+    isBlocked: {
+        type: Boolean,
+        default: false
     },
-    
+    subscription: {
+        planStatus: {
+            type: String,
+            enum: ['active', 'expiring_soon', 'expired', 'inactive'],
+            default: 'inactive'
+        },
+        startDate: { type: Date },
+        endDate: { type: Date }
+    }
+
 }, { timestamps: true });
 
 module.exports = mongoose.model('User', userSchema);

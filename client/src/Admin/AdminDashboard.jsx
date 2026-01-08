@@ -2,7 +2,7 @@
 import React from 'react';
 import { useAuth } from '../Context/Authcontext';
 import { NavLink, Outlet } from 'react-router-dom';
-import { LayoutDashboard, Activity, MessageSquare, LogOut, Users } from 'lucide-react';
+import { LayoutDashboard, Activity, MessageSquare, LogOut, Users, ImageDownIcon } from 'lucide-react';
 
 const AdminDashboard = () => {
     const { user, logout } = useAuth();
@@ -10,6 +10,7 @@ const AdminDashboard = () => {
     const sidebarLinks = [
         { name: "Dashboard", path: "/admin", icon: <LayoutDashboard size={20} />, end: true },
         { name: "All Users", path: "/admin/users", icon: <Users size={20} /> },
+        { name: "Gallery", path: "/admin/gallery", icon: <ImageDownIcon size={20} /> },
     ];
 
     return (
@@ -18,20 +19,20 @@ const AdminDashboard = () => {
             <div className="flex items-center justify-between px-4 md:px-8 border-b border-gray-200 py-3 bg-white shadow-sm z-10">
                 <a href="/" className="flex items-center gap-2">
                      {/* You can replace this with your actual logo */}
-                    <img 
-                        className="h-8" 
-                        src="https://raw.githubusercontent.com/prebuiltui/prebuiltui/main/assets/dummyLogo/dummyLogoColored.svg" 
-                        alt="Logo" 
+                    <img
+                        className="h-8"
+                        src="https://raw.githubusercontent.com/prebuiltui/prebuiltui/main/assets/dummyLogo/dummyLogoColored.svg"
+                        alt="Logo"
                     />
                 </a>
-                
+
                 <div className="flex items-center gap-4 text-gray-600">
                     <div className="text-right hidden sm:block">
                         <p className="text-sm font-semibold text-gray-800">{user?.name || "Admin User"}</p>
                         <p className="text-xs text-gray-500">Administrator</p>
                     </div>
-                    <button 
-                        onClick={logout} 
+                    <button
+                        onClick={logout}
                         className='flex items-center gap-2 border border-gray-300 rounded-full text-sm px-4 py-1.5 hover:bg-red-50 hover:text-red-600 hover:border-red-200 transition-colors'
                     >
                         <LogOut size={16} />
@@ -42,19 +43,19 @@ const AdminDashboard = () => {
 
             {/* --- Main Layout: Sidebar + Content --- */}
             <div className="flex flex-1 overflow-hidden">
-                
+
                 {/* Sidebar */}
                 <aside className="w-16 md:w-64 bg-white border-r border-gray-200 flex flex-col transition-all duration-300">
                     <div className="flex flex-col pt-6 gap-1">
                         {sidebarLinks.map((item, index) => (
-                            <NavLink 
+                            <NavLink
                                 key={index}
                                 to={item.path}
                                 end={item.end} // Ensures "Dashboard" isn't always active
-                                className={({ isActive }) => 
+                                className={({ isActive }) =>
                                     `flex items-center py-3 px-4 gap-3 border-r-4 transition-colors duration-200
-                                    ${isActive 
-                                        ? "border-red-500 bg-red-50 text-red-600" 
+                                    ${isActive
+                                        ? "border-red-500 bg-red-50 text-red-600"
                                         : "border-transparent text-gray-600 hover:bg-gray-50 hover:text-gray-900"
                                     }`
                                 }

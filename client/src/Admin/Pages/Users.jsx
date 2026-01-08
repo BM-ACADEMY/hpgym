@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from "react";
-import axiosInstance from "@/api/axiosInstance"; // Check your path
-import { showToast } from "@/utils/customToast"; // Check your path
+import axiosInstance from "@/api/axiosInstance";
+import { showToast } from "@/utils/customToast";
 import {
   MoreVertical, UserPlus, Search, Edit2, Ban, Trash2, Key,
-  CheckCircle, XCircle, ChevronLeft, ChevronRight, Eye, Calendar, Clock, Save, Loader2
+  CheckCircle, XCircle, ChevronLeft, ChevronRight, Eye, Calendar, Clock, Save, Loader2,
+  AlertCircle, Info, Timer
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -19,12 +20,12 @@ const Users = () => {
 
   // --- MODAL STATES ---
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [isDetailsOpen, setIsDetailsOpen] = useState(false); // New Details Modal
+  const [isDetailsOpen, setIsDetailsOpen] = useState(false);
   const [modalType, setModalType] = useState("add");
   const [selectedUser, setSelectedUser] = useState(null);
-  const [isSubmitting, setIsSubmitting] = useState(false); // Button Loading State
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // --- SUBSCRIPTION STATE (For Details Modal) ---
+  // --- SUBSCRIPTION STATE ---
   const [subPlan, setSubPlan] = useState({
     isActive: false,
     startDate: "",
@@ -32,10 +33,17 @@ const Users = () => {
     totalDays: 0
   });
 
-  // --- DROPDOWN STATE ---
-  const [openDropdownId, setOpenDropdownId] = useState(null);
+  // --- COUNTDOWN STATE ---
+  const [timeLeft, setTimeLeft] = useState({
+    months: 0,
+    days: 0,
+    hours: 0,
+    minutes: 0,
+    seconds: 0,
+    isExpired: false
+  });
 
-  // --- FORM STATE ---
+  const [openDropdownId, setOpenDropdownId] = useState(null);
   const [formData, setFormData] = useState({
     name: "", email: "", phoneNumber: "", password: ""
   });
@@ -60,39 +68,79 @@ const Users = () => {
     return () => window.removeEventListener('click', handleClickOutside);
   }, []);
 
-  // --- SUBSCRIPTION CALCULATION LOGIC ---
+  // --- SUBSCRIPTION DURATION CALCULATION ---
   useEffect(() => {
     if (subPlan.startDate && subPlan.endDate) {
       const start = new Date(subPlan.startDate);
       const end = new Date(subPlan.endDate);
-      const diffTime = end - start;
+
+      if (isNaN(start.getTime()) || isNaN(end.getTime())) {
+        setSubPlan(prev => ({ ...prev, totalDays: 0 }));
+        return;
+      }
+
+      const diffTime = end.getTime() - start.getTime();
       const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-      setSubPlan(prev => ({ ...prev, totalDays: diffDays > 0 ? diffDays : 0 }));
+
+      setSubPlan(prev => ({ ...prev, totalDays: diffDays >= 0 ? diffDays : 0 }));
     } else {
       setSubPlan(prev => ({ ...prev, totalDays: 0 }));
     }
   }, [subPlan.startDate, subPlan.endDate]);
 
-  // --- FILTERING & SORTING LOGIC ---
+  // --- LIVE COUNTDOWN LOGIC ---
+  useEffect(() => {
+    if (!isDetailsOpen || !subPlan.isActive || !subPlan.endDate) {
+      setTimeLeft({ months: 0, days: 0, hours: 0, minutes: 0, seconds: 0, isExpired: false });
+      return;
+    }
+
+    const calculateTimeLeft = () => {
+      const now = new Date();
+      const end = new Date(subPlan.endDate);
+      end.setHours(23, 59, 59, 999);
+
+      const diff = end - now;
+
+      if (diff <= 0) {
+        setTimeLeft({ months: 0, days: 0, hours: 0, minutes: 0, seconds: 0, isExpired: true });
+        return;
+      }
+
+      const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+      const months = Math.floor(days / 30);
+      const remainingDays = days % 30;
+      const hours = Math.floor((diff / (1000 * 60 * 60)) % 24);
+      const minutes = Math.floor((diff / 1000 / 60) % 60);
+      const seconds = Math.floor((diff / 1000) % 60);
+
+      setTimeLeft({ months, days: remainingDays, hours, minutes, seconds, isExpired: false });
+    };
+
+    calculateTimeLeft();
+    const timer = setInterval(calculateTimeLeft, 1000);
+
+    return () => clearInterval(timer);
+  }, [subPlan.endDate, subPlan.isActive, isDetailsOpen]);
+
+  // --- FILTERING & SORTING ---
   const filteredUsers = users
     .filter((user) => {
       const term = searchTerm.toLowerCase();
       const matchesSearch =
         (user.name?.toLowerCase() || "").includes(term) ||
         (user.email?.toLowerCase() || "").includes(term) ||
-        (user.customerId?.toLowerCase() || "").includes(term); // Added Customer ID Search
+        (user.customerId?.toLowerCase() || "").includes(term);
 
       if (activeTab === "blocked") return user.isBlocked && matchesSearch;
       return !user.isBlocked && matchesSearch;
     })
-    .sort((a, b) => (a.customerId || "").localeCompare(b.customerId || "")); // Sort by Customer ID
+    .sort((a, b) => (a.customerId || "").localeCompare(b.customerId || ""));
 
-  // Reset page when filters change
   useEffect(() => {
     setCurrentPage(1);
   }, [activeTab, searchTerm]);
 
-  // Pagination Slice
   const indexOfLastItem = currentPage * itemsPerPage;
   const indexOfFirstItem = indexOfLastItem - itemsPerPage;
   const currentUsers = filteredUsers.slice(indexOfFirstItem, indexOfLastItem);
@@ -105,7 +153,7 @@ const Users = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setIsSubmitting(true); // Start Loading
+    setIsSubmitting(true);
     try {
       if (modalType === "add") {
         await axiosInstance.post("/users", formData);
@@ -122,7 +170,21 @@ const Users = () => {
     } catch (error) {
       showToast("error", error.response?.data?.message || "Action failed");
     } finally {
-      setIsSubmitting(false); // Stop Loading
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleSavePlan = async () => {
+    setIsSubmitting(true);
+    try {
+      await axiosInstance.put(`/users/${selectedUser._id}/subscription`, subPlan);
+      showToast("success", "Subscription plan updated");
+      await fetchUsers();
+      setIsDetailsOpen(false);
+    } catch (error) {
+      showToast("error", "Update failed");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -162,11 +224,10 @@ const Users = () => {
 
   const openDetailsModal = (user) => {
     setSelectedUser(user);
-    // Reset or Fetch subscription details here if available from backend
     setSubPlan({
-      isActive: false, // Default or fetch from user
-      startDate: "",
-      endDate: "",
+      isActive: user.subscription?.planStatus !== 'inactive',
+      startDate: user.subscription?.startDate?.split('T')[0] || "",
+      endDate: user.subscription?.endDate?.split('T')[0] || "",
       totalDays: 0
     });
     setIsDetailsOpen(true);
@@ -179,10 +240,25 @@ const Users = () => {
     setSelectedUser(null);
   };
 
-  // --- ACTION MENU COMPONENT (UPDATED TO FIX HIDING) ---
+  const getStatusBadge = (status) => {
+    const configs = {
+      active: { color: "bg-green-50 text-green-700 border-green-200", icon: <CheckCircle size={12} /> },
+      expiring_soon: { color: "bg-amber-50 text-amber-700 border-amber-200", icon: <Clock size={12} /> },
+      expired: { color: "bg-red-50 text-red-700 border-red-200", icon: <AlertCircle size={12} /> },
+      inactive: { color: "bg-gray-50 text-gray-600 border-gray-200", icon: <Info size={12} /> }
+    };
+    const config = configs[status] || configs.inactive;
+    return (
+      <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase border ${config.color}`}>
+        {config.icon} {status?.replace('_', ' ')}
+      </span>
+    );
+  };
+
+  // --- ACTION MENU COMPONENT ---
   const ActionMenu = ({ user, index, totalItems }) => {
-    // Determine if this is one of the last items to flip direction
-    const isLastItems = index >= totalItems - 2;
+    // Check if this is one of the last few items to flip the dropdown
+    const isLastItems = index >= totalItems - 2 && totalItems > 4;
 
     return (
       <div className="relative inline-block text-left">
@@ -202,16 +278,14 @@ const Users = () => {
         <AnimatePresence>
           {openDropdownId === user._id && (
             <motion.div
-              // Animate from bottom up if last item, else top down
               initial={{ opacity: 0, scale: 0.95, y: isLastItems ? 10 : -10 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: isLastItems ? 10 : -10 }}
               transition={{ duration: 0.1 }}
-              // Conditionally apply classes for positioning
               className={`absolute right-0 w-56 bg-white rounded-xl shadow-[0_4px_20px_rgba(0,0,0,0.15)] border border-gray-100 z-50 overflow-hidden ${
-                isLastItems 
-                  ? "bottom-full mb-2 origin-bottom-right" // Opens Upwards
-                  : "mt-2 origin-top-right"                // Opens Downwards
+                isLastItems
+                  ? "bottom-full mb-2 origin-bottom-right"
+                  : "mt-2 origin-top-right"
               }`}
               onClick={(e) => e.stopPropagation()}
             >
@@ -245,7 +319,7 @@ const Users = () => {
   return (
     <div className="p-4 sm:p-6 bg-gray-50 min-h-screen">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 sm:mb-8 gap-4">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
         <div>
           <h1 className="text-2xl font-bold text-gray-800">User Management</h1>
           <p className="text-gray-500 text-sm">Manage access and user details</p>
@@ -265,8 +339,7 @@ const Users = () => {
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
-              className={`flex-1 md:flex-none px-4 py-2 text-sm font-medium rounded-md transition-all capitalize ${activeTab === tab ? "bg-white text-gray-900 shadow" : "text-gray-500 hover:text-gray-900"
-                }`}
+              className={`flex-1 md:flex-none px-4 py-2 text-sm font-medium rounded-md transition-all capitalize ${activeTab === tab ? "bg-white text-gray-900 shadow" : "text-gray-500 hover:text-gray-900"}`}
             >
               {tab} Users
             </button>
@@ -280,7 +353,7 @@ const Users = () => {
             placeholder="Search ID, Name, Email..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500/20 bg-gray-50 focus:bg-white transition-colors"
+            className="w-full pl-10 pr-4 py-2 border rounded-lg focus:outline-none  bg-gray-50 focus:bg-white transition-colors"
           />
         </div>
       </div>
@@ -298,6 +371,7 @@ const Users = () => {
                   <tr>
                     <th className="px-6 py-4">Customer ID</th>
                     <th className="px-6 py-4">User Details</th>
+                    <th className="px-6 py-4">Plan Status</th>
                     <th className="px-6 py-4">Contact Info</th>
                     <th className="px-6 py-4">Status</th>
                     <th className="px-6 py-4 text-right">Actions</th>
@@ -312,6 +386,9 @@ const Users = () => {
                           <p className="font-medium text-gray-900">{user.name}</p>
                           <p className="text-xs text-gray-500">{user.email}</p>
                         </td>
+                        <td className="px-6 py-4">
+                          {getStatusBadge(user.subscription?.planStatus)}
+                        </td>
                         <td className="px-6 py-4 text-sm text-gray-600">{user.phoneNumber}</td>
                         <td className="px-6 py-4">
                           <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border ${user.isBlocked ? "bg-red-50 text-red-700 border-red-100" : "bg-green-50 text-green-700 border-green-100"
@@ -321,17 +398,12 @@ const Users = () => {
                           </span>
                         </td>
                         <td className={`px-6 py-4 text-right relative ${openDropdownId === user._id ? "z-50" : "z-0"}`}>
-                          {/* PASS INDEX AND TOTAL ITEMS HERE */}
-                          <ActionMenu 
-                            user={user} 
-                            index={index} 
-                            totalItems={currentUsers.length} 
-                          />
+                          <ActionMenu user={user} index={index} totalItems={currentUsers.length} />
                         </td>
                       </tr>
                     ))
                   ) : (
-                    <tr><td colSpan="5" className="px-6 py-12 text-center text-gray-400">No users found.</td></tr>
+                    <tr><td colSpan="6" className="px-6 py-12 text-center text-gray-400">No users found.</td></tr>
                   )}
                 </tbody>
               </table>
@@ -344,25 +416,17 @@ const Users = () => {
                   <div key={user._id} className="bg-white rounded-lg border border-gray-100 p-4 shadow-sm relative">
                     <div className="flex justify-between items-start mb-3">
                       <div className="flex flex-col">
-                        <span className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-1">
-                          #{user.customerId || "N/A"}
-                        </span>
+                        <span className="text-xs font-bold text-gray-400 mb-1">#{user.customerId || "N/A"}</span>
                         <h3 className="font-semibold text-gray-900 text-lg">{user.name}</h3>
-                        <p className="text-sm text-gray-500">{user.email}</p>
+                        <div className="mt-1">{getStatusBadge(user.subscription?.planStatus)}</div>
                       </div>
                       <div className={`${openDropdownId === user._id ? "z-20" : "z-0"}`}>
-                        {/* PASS INDEX AND TOTAL ITEMS HERE */}
-                        <ActionMenu 
-                            user={user} 
-                            index={index} 
-                            totalItems={currentUsers.length} 
-                        />
+                        <ActionMenu user={user} index={index} totalItems={currentUsers.length} />
                       </div>
                     </div>
-                    <div className="flex items-center justify-between text-sm text-gray-600 mt-2 pt-3 border-t border-gray-50">
+                    <div className="flex items-center justify-between text-sm text-gray-600 mt-2 pt-3 border-t">
                       <span>{user.phoneNumber}</span>
-                      <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium ${user.isBlocked ? "bg-red-50 text-red-700" : "bg-green-50 text-green-700"
-                        }`}>
+                      <span className={`px-2 py-0.5 rounded text-xs font-medium ${user.isBlocked ? "bg-red-50 text-red-700" : "bg-green-50 text-green-700"}`}>
                         {user.isBlocked ? "Blocked" : "Active"}
                       </span>
                     </div>
@@ -379,9 +443,9 @@ const Users = () => {
         {filteredUsers.length > 0 && (
           <div className="flex flex-col sm:flex-row justify-between items-center px-6 py-4 border-t border-gray-100 bg-gray-50/50 gap-4">
             <span className="text-sm text-gray-500">
-              Showing <span className="font-medium text-gray-900">{indexOfFirstItem + 1}</span> to{" "}
-              <span className="font-medium text-gray-900">{Math.min(indexOfLastItem, filteredUsers.length)}</span>{" "}
-              of <span className="font-medium text-gray-900">{filteredUsers.length}</span> results
+              Showing <span className="font-medium">{indexOfFirstItem + 1}</span> to{" "}
+              <span className="font-medium">{Math.min(indexOfLastItem, filteredUsers.length)}</span> of{" "}
+              <span className="font-medium">{filteredUsers.length}</span> results
             </span>
             <div className="flex items-center gap-2">
               <button onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))} disabled={currentPage === 1} className="p-2 rounded-lg border bg-white hover:bg-gray-50 disabled:opacity-50 text-gray-600">
@@ -420,7 +484,7 @@ const Users = () => {
                   </>
                 )}
                 {(modalType === 'add' || modalType === 'password') && (
-                  <input type="password" name="password" required value={formData.password} onChange={handleInputChange} className="w-full px-4 py-2 border border-gray-200 rounded-lg outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 transition-all" placeholder={modalType === 'add' ? "Password" : "New Password"} />
+                  <input type="password" name="password" required value={formData.password} onChange={handleInputChange} className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-red-500/20 outline-none" placeholder="Password" />
                 )}
                 <div className="flex gap-3 pt-4">
                   <button type="button" onClick={closeModal} className="flex-1 px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition">Cancel</button>
@@ -441,7 +505,7 @@ const Users = () => {
           <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={closeModal} className="absolute inset-0 bg-black/40 backdrop-blur-sm" />
             <motion.div initial={{ opacity: 0, scale: 0.95, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 20 }} className="bg-white rounded-2xl shadow-2xl w-full max-w-lg p-0 relative z-10 overflow-hidden">
-              
+
               {/* Modal Header */}
               <div className="bg-gray-50 px-6 py-4 border-b border-gray-100 flex justify-between items-center">
                 <div>
@@ -515,15 +579,40 @@ const Users = () => {
                       </div>
                     </div>
 
-                    <div className="bg-red-50 rounded-lg p-3 flex items-center justify-between border border-red-100">
-                      <div className="flex items-center gap-2 text-red-700">
-                        <Clock size={16} />
-                        <span className="text-sm font-medium">Total Duration</span>
-                      </div>
-                      <span className="text-lg font-bold text-red-700">
-                        {subPlan.totalDays} <span className="text-xs font-normal">Days</span>
-                      </span>
-                    </div>
+                    {/* --- NEW DESIGNED COUNTDOWN TIMER --- */}
+                    {subPlan.isActive && (
+  /* Reduced mt-6/pt-5 to mt-3/pt-3 */
+  <div className="mt-3 pt-3 border-t border-gray-100">
+
+    {/* Reduced mb-3 to mb-1.5 */}
+    <div className="flex items-center gap-2 text-gray-500 font-medium text-xs uppercase tracking-wide mb-1.5">
+      <Timer size={13} />
+      <span>Subscription Ends In</span>
+    </div>
+
+    {/* Changed 'justify-between' to 'flex gap-5' to keep numbers closer together */}
+    <div className="flex items-center gap-5 px-1">
+      {[
+        { label: "Months", val: timeLeft.months },
+        { label: "Days", val: timeLeft.days },
+        { label: "Hours", val: timeLeft.hours },
+        { label: "Min", val: timeLeft.minutes },
+        { label: "Sec", val: timeLeft.seconds },
+      ].map((item, idx) => (
+        <div key={idx} className="flex flex-col items-center">
+          {/* Reduced text-3xl to text-2xl for better proportion with less gap */}
+          <span className="text-2xl font-medium text-gray-900 tabular-nums leading-none">
+            {String(item.val).padStart(2, '0')}
+          </span>
+          {/* Removed mt-2 so label sits tight under number */}
+          <span className="text-[9px] font-medium text-gray-400 leading-tight">
+            {item.label}
+          </span>
+        </div>
+      ))}
+    </div>
+  </div>
+)}
                   </div>
                 </div>
               </div>
@@ -533,8 +622,8 @@ const Users = () => {
                 <button onClick={closeModal} className="px-4 py-2 text-sm font-medium text-gray-600 hover:text-gray-800 bg-white border border-gray-200 rounded-lg hover:bg-gray-50">
                   Close
                 </button>
-                <button className="px-4 py-2 text-sm font-medium text-white bg-red-500 rounded-lg hover:bg-red-600 shadow-sm flex items-center gap-2">
-                  <Save size={16} /> Save Plan
+                <button onClick={handleSavePlan} disabled={isSubmitting} className="px-4 py-2 text-sm font-medium text-white bg-red-500 rounded-lg hover:bg-red-600 shadow-sm flex items-center gap-2">
+                  {isSubmitting ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />} Save Plan
                 </button>
               </div>
             </motion.div>
