@@ -91,6 +91,11 @@ const loginUser = async (req, res) => {
   try {
     const user = await User.findOne({ email });
 
+    // CHECK IF BLOCKED
+    if (user && user.isBlocked) {
+        return res.status(403).json({ message: "Your account has been blocked. Contact Admin." });
+    }
+
     // 5. Compare Password Manually (Since we removed matchPassword from model)
     if (user && (await bcrypt.compare(password, user.password))) {
       const token = generateToken(user._id);

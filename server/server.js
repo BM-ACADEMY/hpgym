@@ -5,7 +5,8 @@ const helmet = require('helmet'); // 1. Import Helmet
 const morgan = require('morgan'); // 2. Import Morgan
 const cors = require('cors');     // 3. Import Cors
 const connectDB = require('./config/db');
-const authRoutes = require('./routes/authRoutes');
+const authRoutes = require('./routes/authRoutes'); 
+const userRoutes = require('./routes/userRoutes'); 
 
 dotenv.config();
 
@@ -15,9 +16,8 @@ const app = express();
 
 app.use(helmet()); 
 
-if (process.env.NODE_ENV === 'development') {
-  app.use(morgan('dev'));
-}
+ app.use(morgan('dev'));
+
 
 app.use(cors({
   origin: process.env.CLIENT_URL, 
@@ -30,6 +30,7 @@ app.use(cookieParser());
 
 // Routes
 app.use('/api/auth', authRoutes);
+app.use('/api/users', userRoutes); 
 
 app.get('/', (req, res) => {
     res.send('API is running...');
