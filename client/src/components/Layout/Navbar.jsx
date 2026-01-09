@@ -90,7 +90,7 @@ const Navbar = () => {
     if (user?.role === 'admin') {
       navigate("/admin");
     } else {
-      navigate("/user/dashboard");
+      navigate("/user");
     }
   };
 

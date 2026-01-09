@@ -3,12 +3,9 @@ const fs = require('fs');
 const path = require('path');
 const multer = require('multer');
 
-// --- Multer Configuration ---
-
-// Set storage engine
+// --- Multer Configuration (Same as before) ---
 const storage = multer.diskStorage({
     destination: function (req, file, cb) {
-        // Ensure directory exists
         const dir = 'uploads/gallery/';
         if (!fs.existsSync(dir)){
             fs.mkdirSync(dir, { recursive: true });
@@ -16,22 +13,29 @@ const storage = multer.diskStorage({
         cb(null, dir);
     },
     filename: function (req, file, cb) {
-        // Create unique filename: fieldname-timestamp.ext
         cb(null, file.fieldname + '-' + Date.now() + path.extname(file.originalname));
     }
 });
 
-// Initialize upload variable
 const upload = multer({
     storage: storage,
-    limits: { fileSize: 5 * 1024 * 1024 }, // 5 MB limit
-    // fileFilter function removed to support "all file formats" as requested
-}).single('image'); // Field name in form-data must be 'image'
+    limits: { fileSize: 5 * 1024 * 1024 },
+}).single('image');
 
-// --- Helper: Delete File from Local Storage ---
-const deleteLocalFile = (filePath) => {
-    // Construct the absolute path. Adjust '..' based on your folder structure.
-    const absolutePath = path.join(__dirname, '..', filePath);
+// --- Helper: Delete File ---
+const deleteLocalFile = (fileUrl) => {
+    // We need to extract the relative path from the full URL if it's stored that way
+    // Example input: http://localhost:5000/uploads/gallery/image.jpg
+    // We need: uploads/gallery/image.jpg
+    
+    if (!fileUrl) return;
+
+    // Split by 'uploads/' to get the path relative to root
+    const parts = fileUrl.split('uploads/');
+    if (parts.length < 2) return; // invalid path structure
+
+    const relativePath = 'uploads/' + parts[1];
+    const absolutePath = path.join(__dirname, '..', relativePath);
 
     fs.unlink(absolutePath, (err) => {
         if (err) console.error("Failed to delete local file:", err);
@@ -41,46 +45,70 @@ const deleteLocalFile = (filePath) => {
 
 // --- Controllers ---
 
-// @desc    Upload new gallery image
-// @route   POST /api/gallery
-// @access  Private/Admin
+// @desc    Upload new gallery image with FULL URL
 const createGalleryItem = (req, res) => {
     upload(req, res, async function (err) {
-        if (err instanceof multer.MulterError) {
-            return res.status(500).json({ message: `Multer Error: ${err.message}` });
-        } else if (err) {
-            return res.status(500).json({ message: `Unknown Error: ${err.message}` });
-        }
-
-        // Validate if file exists
-        if (!req.file) {
-            return res.status(400).json({ message: 'Please upload a file' });
-        }
+        if (err) return res.status(500).json({ message: err.message });
+        if (!req.file) return res.status(400).json({ message: 'Please upload a file' });
 
         const { title } = req.body;
 
         try {
-            // Save path relative to root, e.g., "uploads/gallery/image-123.jpg"
-            // Note: Standardize path separators for cross-platform compatibility
-            const imagePath = req.file.path.replace(/\\/g, "/");
+            // 1. Get Base URL (e.g., http://localhost:5000)
+            const baseUrl = `${req.protocol}://${req.get('host')}`;
+            
+            // 2. Standardize file path (uploads/gallery/image.jpg)
+            const filePath = req.file.path.replace(/\\/g, "/");
+
+            // 3. Create Full URL
+            const fullImageUrl = `${baseUrl}/${filePath}`;
 
             const galleryItem = await Gallery.create({
                 title,
-                image: imagePath,
+                image: fullImageUrl, // Saving Full URL now
             });
 
             res.status(201).json(galleryItem);
         } catch (error) {
-            // If DB fails, delete the uploaded file to prevent orphans
-            deleteLocalFile(req.file.path);
+            deleteLocalFile(req.file ? req.file.path : null);
             res.status(500).json({ message: 'Database failed', error: error.message });
         }
     });
 };
 
-// @desc    Get all gallery images
-// @route   GET /api/gallery
-// @access  Public
+// @desc    Update gallery image
+const updateGalleryItem = (req, res) => {
+    upload(req, res, async function (err) {
+        if (err) return res.status(500).json({ message: err.message });
+
+        try {
+            const item = await Gallery.findById(req.params.id);
+            if (!item) {
+                if (req.file) fs.unlinkSync(req.file.path);
+                return res.status(404).json({ message: 'Gallery item not found' });
+            }
+
+            item.title = req.body.title || item.title;
+
+            if (req.file) {
+                // 1. Delete old file using the helper (which now handles URLs)
+                deleteLocalFile(item.image);
+
+                // 2. Generate new Full URL
+                const baseUrl = `${req.protocol}://${req.get('host')}`;
+                const filePath = req.file.path.replace(/\\/g, "/");
+                item.image = `${baseUrl}/${filePath}`;
+            }
+
+            const updatedItem = await item.save();
+            res.json(updatedItem);
+        } catch (error) {
+            res.status(500).json({ message: error.message });
+        }
+    });
+};
+
+// @desc    Get all items
 const getGalleryItems = async (req, res) => {
     try {
         const items = await Gallery.find({}).sort({ createdAt: -1 });
@@ -90,58 +118,13 @@ const getGalleryItems = async (req, res) => {
     }
 };
 
-// @desc    Update gallery image info and/or file
-// @route   PUT /api/gallery/:id
-// @access  Private/Admin
-const updateGalleryItem = (req, res) => {
-    upload(req, res, async function (err) {
-        if (err) return res.status(500).json({ message: err.message });
-
-        try {
-            const item = await Gallery.findById(req.params.id);
-
-            if (!item) {
-                // If a new file was uploaded but item not found, delete the new file
-                if (req.file) deleteLocalFile(req.file.path);
-                return res.status(404).json({ message: 'Gallery item not found' });
-            }
-
-            // Update text fields
-            item.title = req.body.title || item.title;
-
-            // If a new file is provided
-            if (req.file) {
-                // 1. Delete the OLD file from filesystem
-                deleteLocalFile(item.image);
-
-                // 2. Set the NEW file path
-                item.image = req.file.path.replace(/\\/g, "/");
-            }
-
-            const updatedItem = await item.save();
-            res.json(updatedItem);
-
-        } catch (error) {
-            res.status(500).json({ message: error.message });
-        }
-    });
-};
-
-// @desc    Delete gallery image
-// @route   DELETE /api/gallery/:id
-// @access  Private/Admin
+// @desc    Delete item
 const deleteGalleryItem = async (req, res) => {
     try {
         const item = await Gallery.findById(req.params.id);
+        if (!item) return res.status(404).json({ message: 'Not found' });
 
-        if (!item) {
-            return res.status(404).json({ message: 'Gallery item not found' });
-        }
-
-        // 1. Delete file from filesystem
         deleteLocalFile(item.image);
-
-        // 2. Delete from Database
         await item.deleteOne();
 
         res.json({ message: 'Gallery item removed' });

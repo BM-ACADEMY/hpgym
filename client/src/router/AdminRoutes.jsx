@@ -1,26 +1,23 @@
 // src/Admin/AdminRoutes.jsx
 import React from 'react';
-import { Routes, Route } from 'react-router-dom';
+import { Routes, Route, Navigate } from 'react-router-dom'; // 1. Import Navigate
 import AdminDashboard from '@/Admin/AdminDashboard';
 import Users from '@/Admin/Pages/Users';
 import Gallery from '@/Admin/Pages/Gallery';
-
-const AdminHome = () => <div className="text-2xl font-bold">Admin Dashboard Home</div>;
-const AdminChat = () => <div className="text-xl">Admin Chat Module</div>;
+import Testimonial from '@/Admin/Pages/Testimonial';
+// import Dashbaord from '@/Admin/Pages/Dashbaord'; // You can remove this import now
 
 const AdminRoutes = () => {
     return (
         <Routes>
-            {/* The Layout wraps all child routes */}
             <Route element={<AdminDashboard />}>
 
-                {/* Path: /admin/ */}
-                <Route index element={<AdminHome />} />
+                {/* 2. Change the Index Route to Navigate to users */}
+                <Route index element={<Navigate to="users" replace />} />
 
-                {/* Path: /admin/overview */}
+                {/* Existing Routes */}
                 <Route path="users" element={<Users />} />
-
-                {/* Path: /admin/chat */}
+                <Route path="testimonials" element={<Testimonial />} />
                 <Route path="gallery" element={<Gallery />} />
 
             </Route>

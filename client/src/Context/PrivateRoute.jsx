@@ -1,3 +1,4 @@
+// src/Context/PrivateRoute.jsx
 import { Navigate, useLocation } from "react-router-dom";
 import { useAuth } from "../Context/Authcontext";
 
@@ -12,11 +13,11 @@ const PrivateRoute = ({ children, allowedRoles = [] }) => {
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
-  // 2. Logged in, but wrong role (e.g., User trying to access Admin)
-if (allowedRoles.length > 0 && !allowedRoles.includes(user.role)) {
-    // ✅ FIX: Use "/admin" instead of "/admin/dashboard"
-    return <Navigate to={user.role === "admin" ? "/admin" : "/user/dashboard"} replace />;
-}
+  // 2. Logged in, but wrong role
+  if (allowedRoles.length > 0 && !allowedRoles.includes(user.role)) {
+    // ✅ FIX: Redirect to "/user" if they are a normal user
+    return <Navigate to={user.role === "admin" ? "/admin" : "/user"} replace />;
+  }
 
   return children;
 };

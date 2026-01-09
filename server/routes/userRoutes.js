@@ -4,6 +4,7 @@ const { protect, admin } = require('../middleware/authMiddleware');
 const {
     getAllUsers,
     createUser,
+    getUserById, 
     updateUser,
     deleteUser,
     toggleBlockUser,
@@ -11,23 +12,25 @@ const {
     updateSubscription
 } = require('../controllers/userController');
 
-// All routes in this file are protected and require Admin role
+// 1. Protect all routes (User must be logged in)
 router.use(protect);
-router.use(admin);
 
-// Route: /api/users
+// 2. Admin Only Routes (List all users, Create user manually)
 router.route('/')
-    .get(getAllUsers)
-    .post(createUser);
+    .get(admin, getAllUsers)   
+    .post(admin, createUser);  
 
-// Route: /api/users/:id
+// 3. Public/User Routes (Fetch own profile, Update own profile)
 router.route('/:id')
-    .put(updateUser)
-    .delete(deleteUser);
+    .get(getUserById)         
+    .put(updateUser)          
+    .delete(admin, deleteUser);
 
-// Specific Action Routes
-router.put('/:id/block', toggleBlockUser);
+// 4. Admin Only Actions
+router.put('/:id/block', admin, toggleBlockUser);
+router.put('/:id/subscription', admin, updateSubscription);
+
+// 5. Password Change (Allowed for user)
 router.put('/:id/password', changeUserPassword);
-router.put('/:id/subscription', updateSubscription); // New route for the "Save Plan" feature
 
 module.exports = router;

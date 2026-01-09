@@ -2,10 +2,12 @@
 import { Routes, Route } from "react-router-dom";
 import Homeroutes from "./Homeroutes";
 import Login from "@/auth/Login";
-import UserDashboard from "@/pages/UserDashboard"; 
 import PrivateRoute from "@/Context/PrivateRoute";
 import PublicRoute from "@/Context/PublicRoute";
+import UserRoutes from "./UserRoutes";
 import AdminRoutes from "./AdminRoutes";
+
+
 
 const Mainroutes = () => {
   return (
@@ -22,14 +24,18 @@ const Mainroutes = () => {
         } 
       />
 
+      {/* --- User Routes --- */}
+      {/* Changed path to /user/* and element to UserRoutes */}
       <Route 
-        path="/user/dashboard" 
+        path="/user/*" 
         element={
             <PrivateRoute allowedRoles={['user']}> 
-                <UserDashboard />
+                <UserRoutes />
             </PrivateRoute>
         } 
       />
+
+      {/* --- Admin Routes --- */}
       <Route 
         path="/admin/*" 
         element={

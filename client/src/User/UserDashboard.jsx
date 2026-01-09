@@ -1,23 +1,24 @@
-// src/Admin/AdminDashboard.jsx
+// src/User/UserDashboard.jsx
 import React from 'react';
-import { useAuth } from '../Context/Authcontext';
+import { useAuth } from '../Context/Authcontext'; 
 import { NavLink, Outlet } from 'react-router-dom';
-import { Activity, MessageSquare, LogOut, Users, ImageDownIcon } from 'lucide-react'; 
-// Note: removed LayoutDashboard import as it is no longer used
+import { User, Settings, LogOut, ShoppingBag, MessageCircle } from 'lucide-react'; // Removed LayoutDashboard icon
 
-const AdminDashboard = () => {
+const UserDashboard = () => {
     const { user, logout } = useAuth();
 
-    // 1. Remove the "Dashboard" object from this array
     const sidebarLinks = [
-        { name: "All Users", path: "/admin/users", icon: <Users size={20} /> },
-        { name: "Gallery", path: "/admin/gallery", icon: <ImageDownIcon size={20} /> },
-        { name: "Testimonials", path: "/admin/testimonials", icon: <MessageSquare size={20} /> },
+        // ✅ 1. Point "My Profile" to "/user" and add "end: true"
+        // This makes it the default active link when landing on the dashboard.
+        { name: "My Profile", path: "/user", icon: <User size={20} />, end: true },
+
+
+        { name: "Testimonial", path: "/user/testimonial", icon: <MessageCircle size={20} /> },
     ];
 
     return (
         <div className="flex flex-col h-screen bg-gray-50">
-            {/* ... Header code remains the same ... */}
+            {/* --- Header --- */}
             <div className="flex items-center justify-between px-4 md:px-8 border-b border-gray-200 py-3 bg-white shadow-sm z-10">
                 <a href="/" className="flex items-center gap-2 font-bold text-xl text-gray-600">
                     Hp Fitness Studio
@@ -25,8 +26,8 @@ const AdminDashboard = () => {
 
                 <div className="flex items-center gap-4 text-gray-600">
                     <div className="text-right hidden sm:block">
-                        <p className="text-sm font-semibold text-gray-800">{user?.name || "Admin User"}</p>
-                        <p className="text-xs text-gray-500">Administrator</p>
+                        <p className="text-sm font-semibold text-gray-800">{user?.name || "Member"}</p>
+                        <p className="text-xs text-gray-500">User Account</p>
                     </div>
                     <button
                         onClick={logout}
@@ -38,6 +39,7 @@ const AdminDashboard = () => {
                 </div>
             </div>
 
+            {/* --- Main Layout --- */}
             <div className="flex flex-1 overflow-hidden">
                 {/* Sidebar */}
                 <aside className="w-16 md:w-64 bg-white border-r border-gray-200 flex flex-col transition-all duration-300">
@@ -46,7 +48,7 @@ const AdminDashboard = () => {
                             <NavLink
                                 key={index}
                                 to={item.path}
-                                // Removed 'end' prop as it's not strictly needed for sub-routes 
+                                end={item.end} 
                                 className={({ isActive }) =>
                                     `flex items-center py-3 px-4 gap-3 border-r-4 transition-colors duration-200
                                     ${isActive
@@ -62,6 +64,7 @@ const AdminDashboard = () => {
                     </div>
                 </aside>
 
+                {/* Content */}
                 <main className="flex-1 overflow-y-auto p-6 md:p-10">
                     <Outlet />
                 </main>
@@ -70,4 +73,4 @@ const AdminDashboard = () => {
     );
 };
 
-export default AdminDashboard;
+export default UserDashboard;
