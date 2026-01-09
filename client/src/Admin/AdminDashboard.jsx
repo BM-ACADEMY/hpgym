@@ -2,7 +2,7 @@
 import React from 'react';
 import { useAuth } from '../Context/Authcontext';
 import { NavLink, Outlet } from 'react-router-dom';
-import { Activity, MessageSquare, LogOut, Users, ImageDownIcon } from 'lucide-react'; 
+import { Activity, MessageSquare, LogOut, Users, ImageDownIcon } from 'lucide-react';
 // Note: removed LayoutDashboard import as it is no longer used
 
 const AdminDashboard = () => {
@@ -46,7 +46,7 @@ const AdminDashboard = () => {
                             <NavLink
                                 key={index}
                                 to={item.path}
-                                // Removed 'end' prop as it's not strictly needed for sub-routes 
+                                // Removed 'end' prop as it's not strictly needed for sub-routes
                                 className={({ isActive }) =>
                                     `flex items-center py-3 px-4 gap-3 border-r-4 transition-colors duration-200
                                     ${isActive

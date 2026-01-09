@@ -10,9 +10,10 @@ const connectDB = require('./config/db');
 // Import Routes
 const authRoutes = require('./routes/authRoutes');
 const userRoutes = require('./routes/userRoutes');
-const galleryRoutes = require('./routes/galleryRoutes'); 
+const galleryRoutes = require('./routes/galleryRoutes');
 const testimonialRoutes = require('./routes/testimonialRoutes');
 const dashboardRoutes = require('./routes/dashboardRoutes');
+const enquiryRoutes = require('./routes/enquiryRoutes');
 
 dotenv.config();
 connectDB();
@@ -39,9 +40,10 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 // --- Routes ---
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
-app.use('/api/gallery', galleryRoutes); 
+app.use('/api/gallery', galleryRoutes);
 app.use('/api/testimonials', testimonialRoutes);
 app.use('/api/dashboard', dashboardRoutes);
+app.use('/api/enquiry', enquiryRoutes);
 
 app.get('/', (req, res) => {
     res.send('API is running...');
