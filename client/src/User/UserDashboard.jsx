@@ -27,7 +27,7 @@ const UserDashboard = () => {
                 <div className="flex items-center gap-4 text-gray-600">
                     <div className="text-right hidden sm:block">
                         <p className="text-sm font-semibold text-gray-800">{user?.name || "Member"}</p>
-                        <p className="text-xs text-gray-500">User Account</p>
+                        <p className="text-xs text-gray-500">User</p>
                     </div>
                     <button
                         onClick={logout}
