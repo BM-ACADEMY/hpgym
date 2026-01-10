@@ -101,13 +101,13 @@ const loginUser = async (req, res) => {
     if (user && (await bcrypt.compare(password, user.password))) {
       const token = generateToken(user._id);
 
-      res.cookie("jwt", token, {
-  httpOnly: true,
-  // FIX: Set secure to TRUE in production
-  secure: process.env.NODE_ENV === "production", 
-  sameSite: "none", // correctly set for cross-site
-  maxAge: 30 * 24 * 60 * 60 * 1000,
-});
+        res.cookie("jwt", token, {
+    httpOnly: true,
+    // FIX: Set secure to TRUE in production
+    secure: process.env.NODE_ENV === "production", 
+    sameSite: "none", // correctly set for cross-site
+    maxAge: 30 * 24 * 60 * 60 * 1000,
+  });
 
       res.json({
         _id: user._id,
