@@ -35,14 +35,13 @@ const Navbar = () => {
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
-
   const toggleDrawer = (open) => () => setIsOpen(open);
 
   const navItems = [
     { name: "Home", id: "home" },
     { name: "About", id: "about" },
     { name: "Services", id: "services" },
-    { name: "Contact", id: "contact" },
+    { name: "Enquiry", id: "enquiry" },
   ];
 
   // --- FIX 1: UPDATED NAVIGATION LOGIC ---

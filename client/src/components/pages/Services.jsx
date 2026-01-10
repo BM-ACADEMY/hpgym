@@ -1,5 +1,8 @@
 import React from "react";
 import { Dumbbell, PersonStanding, Play, Trophy, Activity } from "lucide-react";
+import Personaltrainer from "@/assets/images/personaltrainer.jpg"
+import weightloss from "@/assets/images/weightloss.jpg"
+import bodytone from "@/assets/images/bodytone.jpg"
 
 const services = [
   {
@@ -7,7 +10,7 @@ const services = [
     title: "PERSONAL TRAINING",
     description: "One-on-one coaching tailored to your specific goals.",
     // Image: Trainer helping client
-    image: "https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80", 
+    image: Personaltrainer, 
     icon: <Dumbbell className="w-8 h-8 text-white mb-2" />,
   },
   {
@@ -15,7 +18,7 @@ const services = [
     title: "BODY TONE UP",
     description: "Sculpt and define muscles with targeted resistance.",
     // Image: Woman lifting weights/toning
-    image: "https://images.unsplash.com/photo-1583454110551-21f2fa2afe61?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80", 
+    image: bodytone, 
     icon: <PersonStanding className="w-8 h-8 text-white mb-2" />,
   },
   {
@@ -23,7 +26,7 @@ const services = [
     title: "WEIGHT LOSS",
     description: "High-intensity cardio circuits designed to burn fat fast.",
     // Image: High intensity rope workout
-    image: "https://images.unsplash.com/photo-1599058945522-28d584b6f0ff?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80", 
+    image: weightloss, 
     icon: <Activity className="w-8 h-8 text-white mb-2" />,
   },
   {
@@ -38,7 +41,7 @@ const services = [
 
 const GymServicesSection = () => {
   return (
-    <section className="relative w-full bg-white pb-20 overflow-hidden">
+    <section className="relative w-full bg-white pb-20 overflow-hidden" id="services">
       
       {/* --- Background Section (Orange Gradient) --- */}
       <div className="absolute top-0 left-0 w-full h-[600px] bg-gradient-to-r from-[#F94C30] to-[#E02D2D] z-0">

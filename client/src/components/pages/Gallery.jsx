@@ -50,7 +50,7 @@ const GymGallery = () => {
           <h3 className="text-[#F94C30] uppercase tracking-[0.2em] text-sm font-bold mb-2">
             Our Gallery
           </h3>
-          <h2 className="text-4xl md:text-5xl font-extrabold uppercase italic text-gray-900 leading-tight">
+          <h2 className="text-4xl md:text-5xl font-extrabold uppercase  text-gray-900 leading-tight">
             See The <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#F94C30] to-[#E02D2D]">Results</span>
           </h2>
           <p className="mt-4 text-gray-500 max-w-2xl mx-auto">

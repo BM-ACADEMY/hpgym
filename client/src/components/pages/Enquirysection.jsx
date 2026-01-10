@@ -62,7 +62,7 @@ const Enquirypage = () => {
   };
 
   return (
-    <section className="relative min-h-screen flex items-center justify-end py-20 px-4 sm:px-6 lg:px-8 overflow-hidden" id="contact">
+    <section className="relative min-h-screen flex items-center justify-end py-20 px-4 sm:px-6 lg:px-8 overflow-hidden" id="enquiry">
       {/* Background Image */}
       <div className="absolute inset-0 z-0">
         <img

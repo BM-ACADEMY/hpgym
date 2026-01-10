@@ -6,6 +6,7 @@ import GymGallery from '@/components/pages/Gallery'
 import HomeSection from '@/components/pages/Home'
 import ServicesSection from '@/components/pages/Services'
 import TestimonialSection from '@/components/pages/Testimonial'
+import WhyChooseUs from '@/components/pages/whychoose'
 import React from 'react'
 
 const Homeroutes = () => {
@@ -15,6 +16,8 @@ const Homeroutes = () => {
         <HomeSection/>
         <AboutSection/>
         <ServicesSection/>
+        <WhyChooseUs/>
+
         <TestimonialSection/>
         <GymGallery/>
         <Enquirypage/>
