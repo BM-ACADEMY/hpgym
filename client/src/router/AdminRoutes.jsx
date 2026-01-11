@@ -5,6 +5,7 @@ import AdminDashboard from '@/Admin/AdminDashboard';
 import Users from '@/Admin/Pages/Users';
 import Gallery from '@/Admin/Pages/Gallery';
 import Testimonial from '@/Admin/Pages/Testimonial';
+import Overviews from '@/Admin/Pages/Overviews';
 // import Dashbaord from '@/Admin/Pages/Dashbaord'; // You can remove this import now
 
 const AdminRoutes = () => {
@@ -19,6 +20,7 @@ const AdminRoutes = () => {
                 <Route path="users" element={<Users />} />
                 <Route path="testimonials" element={<Testimonial />} />
                 <Route path="gallery" element={<Gallery />} />
+                <Route path="overview" element={<Overviews />} />
 
             </Route>
         </Routes>

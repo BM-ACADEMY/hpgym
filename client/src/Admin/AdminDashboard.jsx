@@ -2,7 +2,7 @@
 import React from 'react';
 import { useAuth } from '../Context/Authcontext';
 import { NavLink, Outlet } from 'react-router-dom';
-import { Activity, MessageSquare, LogOut, Users, ImageDownIcon } from 'lucide-react';
+import { Activity, MessageSquare, LogOut, Users, ImageDownIcon, GitGraph } from 'lucide-react';
 // Note: removed LayoutDashboard import as it is no longer used
 
 const AdminDashboard = () => {
@@ -13,6 +13,7 @@ const AdminDashboard = () => {
         { name: "All Users", path: "/admin/users", icon: <Users size={20} /> },
         { name: "Gallery", path: "/admin/gallery", icon: <ImageDownIcon size={20} /> },
         { name: "Testimonials", path: "/admin/testimonials", icon: <MessageSquare size={20} /> },
+        { name: "Overviews", path: "/admin/overview", icon: <GitGraph size={20} /> },
     ];
 
     return (
