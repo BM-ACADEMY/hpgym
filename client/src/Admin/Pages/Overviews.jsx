@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import axiosInstance from '@/api/axiosInstance'; // Adjust path based on your folder structure
+import axiosInstance from '@/api/axiosInstance';
 import {
   PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Legend
 } from 'recharts';
@@ -9,12 +9,19 @@ import {
   AlertTriangle,
   XCircle,
   TrendingUp,
-  Activity
+  Activity,
+  Filter,
+  ChevronLeft,
+  ChevronRight,
+  ChevronDown
 } from 'lucide-react';
 
 const Overviews = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  
+  // --- Data States ---
+  const [users, setUsers] = useState([]); // Store all users
   const [stats, setStats] = useState({
     totalUsers: 0,
     active: 0,
@@ -23,31 +30,35 @@ const Overviews = () => {
     inactive: 0,
     newUsersThisMonth: 0
   });
-  const [recentUsers, setRecentUsers] = useState([]);
+
+  // --- Filter & Pagination States ---
+  const [planFilter, setPlanFilter] = useState('all');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage] = useState(5); // Show 5 per page for the overview widget
 
   useEffect(() => {
     const fetchDashboardData = async () => {
       try {
         const response = await axiosInstance.get('/users');
-        const users = response.data;
+        const fetchedUsers = response.data;
+        setUsers(fetchedUsers); // Save full list
 
-        // --- 1. Calculate Subscription Stats ---
+        // --- 1. Calculate Stats ---
         const now = new Date();
         const thirtyDaysAgo = new Date();
         thirtyDaysAgo.setDate(now.getDate() - 30);
 
-        const calculatedStats = users.reduce(
+        const calculatedStats = fetchedUsers.reduce(
           (acc, user) => {
             acc.totalUsers++;
 
-            // Calculate Growth (New users in last 30 days)
+            // Growth
             const createdDate = new Date(user.createdAt);
             if (createdDate >= thirtyDaysAgo) {
               acc.newUsersThisMonth++;
             }
 
-            // Calculate Live Plan Status
-            // We use the helper function logic directly here to ensure accuracy
+            // Plan Status Helper Logic
             let status = 'inactive';
             if (user.subscription?.endDate) {
               const end = new Date(user.subscription.endDate);
@@ -64,17 +75,15 @@ const Overviews = () => {
             else if (status === 'expired') acc.expired++;
             else acc.inactive++;
 
+            // Attach calculated status to user object for easy filtering later
+            user.calculatedStatus = status;
+
             return acc;
           },
           { totalUsers: 0, active: 0, expiringSoon: 0, expired: 0, inactive: 0, newUsersThisMonth: 0 }
         );
 
         setStats(calculatedStats);
-
-        // --- 2. Get Recent Users (Top 5) ---
-        // Assuming the API returns sorted by createdAt -1, otherwise we slice the first 5
-        setRecentUsers(users.slice(0, 5));
-
         setLoading(false);
       } catch (err) {
         console.error("Error loading dashboard:", err);
@@ -85,6 +94,22 @@ const Overviews = () => {
 
     fetchDashboardData();
   }, []);
+
+  // --- Filtering Logic ---
+  const filteredUsers = users.filter((user) => {
+    if (planFilter === 'all') return true;
+    return user.calculatedStatus === planFilter;
+  }).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)); // Keep sorted by newest
+
+  // --- Pagination Logic ---
+  useEffect(() => {
+    setCurrentPage(1); // Reset to page 1 when filter changes
+  }, [planFilter]);
+
+  const indexOfLastItem = currentPage * itemsPerPage;
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+  const currentUsers = filteredUsers.slice(indexOfFirstItem, indexOfLastItem);
+  const totalPages = Math.ceil(filteredUsers.length / itemsPerPage);
 
   // Chart Data
   const chartData = [
@@ -177,14 +202,40 @@ const Overviews = () => {
           </div>
         </div>
 
-        {/* --- 3. Recent Users Table --- */}
-        <div className="lg:col-span-2 bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-          <div className="p-6 border-b border-gray-100 flex justify-between items-center">
-            <h3 className="text-lg font-semibold text-gray-800">Recent Registrations</h3>
-            <span className="text-xs font-medium bg-gray-100 text-gray-600 px-2 py-1 rounded">Last 5 Users</span>
+        {/* --- 3. User Table with Filter & Pagination --- */}
+        <div className="lg:col-span-2 bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden flex flex-col">
+          
+          {/* Header with Filter */}
+          <div className="p-6 border-b border-gray-100 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            <div>
+              <h3 className="text-lg font-semibold text-gray-800">User Directory</h3>
+              <p className="text-xs text-gray-500">Manage and view user statuses</p>
+            </div>
+            
+            {/* Filter Dropdown */}
+            <div className="relative">
+              <div className="absolute left-3 top-2.5 pointer-events-none text-gray-400">
+                <Filter size={14} />
+              </div>
+              <select
+                value={planFilter}
+                onChange={(e) => setPlanFilter(e.target.value)}
+                className="pl-9 pr-8 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-blue-500 focus:bg-white transition-colors appearance-none cursor-pointer hover:border-gray-300 font-medium text-gray-700 min-w-[160px]"
+              >
+                <option value="all">All Plans</option>
+                <option value="active">Active</option>
+                <option value="expiring_soon">Expiring Soon</option>
+                <option value="expired">Expired</option>
+                <option value="inactive">Inactive</option>
+              </select>
+              <div className="absolute right-3 top-3 pointer-events-none text-gray-400">
+                <ChevronDown size={14} />
+              </div>
+            </div>
           </div>
 
-          <div className="overflow-x-auto">
+          {/* Table Content */}
+          <div className="overflow-x-auto flex-grow">
             <table className="w-full text-left text-sm text-gray-600">
               <thead className="bg-gray-50 text-xs uppercase font-medium text-gray-500">
                 <tr>
@@ -195,35 +246,68 @@ const Overviews = () => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
-                {recentUsers.map((user) => (
-                  <tr key={user._id} className="hover:bg-gray-50 transition-colors">
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-bold text-xs">
-                          {user.name.charAt(0).toUpperCase()}
+                {currentUsers.length > 0 ? (
+                  currentUsers.map((user) => (
+                    <tr key={user._id} className="hover:bg-gray-50 transition-colors">
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-bold text-xs shrink-0">
+                            {user.name.charAt(0).toUpperCase()}
+                          </div>
+                          <div>
+                            <p className="font-medium text-gray-900 line-clamp-1">{user.name}</p>
+                            <p className="text-xs text-gray-400">{user.email}</p>
+                          </div>
                         </div>
-                        <div>
-                          <p className="font-medium text-gray-900">{user.name}</p>
-                          <p className="text-xs text-gray-400">{user.email}</p>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4">
-                       <StatusBadge endDate={user.subscription?.endDate} />
-                    </td>
-                    <td className="px-6 py-4">
-                      {new Date(user.createdAt).toLocaleDateString()}
-                    </td>
-                    <td className="px-6 py-4 text-right font-medium">
-                      {user.subscription?.endDate
-                        ? new Date(user.subscription.endDate).toLocaleDateString()
-                        : <span className="text-gray-400">-</span>}
+                      </td>
+                      <td className="px-6 py-4">
+                         <StatusBadge status={user.calculatedStatus} />
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        {new Date(user.createdAt).toLocaleDateString()}
+                      </td>
+                      <td className="px-6 py-4 text-right font-medium whitespace-nowrap">
+                        {user.subscription?.endDate
+                          ? new Date(user.subscription.endDate).toLocaleDateString()
+                          : <span className="text-gray-400">-</span>}
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan="4" className="px-6 py-12 text-center text-gray-400">
+                      No users found matching filter.
                     </td>
                   </tr>
-                ))}
+                )}
               </tbody>
             </table>
           </div>
+
+          {/* Pagination Footer */}
+          {filteredUsers.length > 0 && (
+            <div className="px-6 py-4 border-t border-gray-100 bg-gray-50/50 flex justify-between items-center">
+              <span className="text-xs text-gray-500">
+                Page <span className="font-medium text-gray-700">{currentPage}</span> of <span className="font-medium text-gray-700">{totalPages}</span>
+              </span>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                  disabled={currentPage === 1}
+                  className="p-1.5 rounded-lg border bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed text-gray-600 shadow-sm transition-all"
+                >
+                  <ChevronLeft size={16} />
+                </button>
+                <button
+                  onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                  disabled={currentPage === totalPages}
+                  className="p-1.5 rounded-lg border bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed text-gray-600 shadow-sm transition-all"
+                >
+                  <ChevronRight size={16} />
+                </button>
+              </div>
+            </div>
+          )}
         </div>
 
       </div>
@@ -266,17 +350,12 @@ const ProgressBar = ({ label, value, total, color }) => {
   );
 };
 
-const StatusBadge = ({ endDate }) => {
-  if (!endDate) return <span className="px-2 py-1 rounded text-xs font-medium bg-gray-100 text-gray-600">Inactive</span>;
-
-  const now = new Date();
-  const end = new Date(endDate);
-  const diffTime = end - now;
-  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-
-  if (diffDays < 0) return <span className="px-2 py-1 rounded text-xs font-medium bg-red-100 text-red-700">Expired</span>;
-  if (diffDays <= 7) return <span className="px-2 py-1 rounded text-xs font-medium bg-yellow-100 text-yellow-700">Expiring</span>;
-  return <span className="px-2 py-1 rounded text-xs font-medium bg-green-100 text-green-700">Active</span>;
+// Updated to accept calculated Status string
+const StatusBadge = ({ status }) => {
+  if (status === 'expired') return <span className="px-2 py-1 rounded text-xs font-medium bg-red-100 text-red-700">Expired</span>;
+  if (status === 'expiring_soon') return <span className="px-2 py-1 rounded text-xs font-medium bg-amber-100 text-amber-700">Expiring</span>;
+  if (status === 'active') return <span className="px-2 py-1 rounded text-xs font-medium bg-emerald-100 text-emerald-700">Active</span>;
+  return <span className="px-2 py-1 rounded text-xs font-medium bg-gray-100 text-gray-600">Inactive</span>;
 };
 
 export default Overviews;

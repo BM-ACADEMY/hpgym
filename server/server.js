@@ -12,7 +12,6 @@ const authRoutes = require('./routes/authRoutes');
 const userRoutes = require('./routes/userRoutes');
 const galleryRoutes = require('./routes/galleryRoutes');
 const testimonialRoutes = require('./routes/testimonialRoutes');
-const dashboardRoutes = require('./routes/dashboardRoutes');
 const enquiryRoutes = require('./routes/enquiryRoutes');
 
 dotenv.config();
@@ -42,7 +41,6 @@ app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/gallery', galleryRoutes);
 app.use('/api/testimonials', testimonialRoutes);
-app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/enquiry', enquiryRoutes);
 
 app.get('/', (req, res) => {

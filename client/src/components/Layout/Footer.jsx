@@ -1,5 +1,5 @@
 import React from 'react';
-import Footerlogo from '@/assets/images/logo.jpeg';
+import Footerlogo from '@/assets/images/logo.png';
 import FooterBackground from '@/assets/images/FIT0019.png';
 import { Instagram, Mail, MapPin, Phone } from 'lucide-react';
 

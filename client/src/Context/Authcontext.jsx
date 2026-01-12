@@ -1,28 +1,17 @@
+// Context/Authcontext.jsx
 import { createContext, useContext, useState, useEffect } from "react";
-import axiosInstance from "../api/axiosInstance.jsx"; // Ensure this path is correct
-import { showToast } from "../utils/customToast.jsx"; // Ensure this path is correct
+import axiosInstance from "../api/axiosInstance.jsx"; // Ensure this path matches your project structure
+import { showToast } from "../utils/customToast.jsx"; // Ensure this path matches your project structure
 
 const AuthContext = createContext();
+
 export const useAuth = () => useContext(AuthContext);
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  const loadUser = async () => {
-    try {
-      const res = await axiosInstance.get("/auth/me"); // Ensure you have this route on backend or rely on local storage logic
-      // If /auth/me isn't implemented, we usually rely on the login response. 
-      // For this example, I'll assume the login/register response sets the user state.
-    } catch (err) {
-      console.log(err);
-      setUser(null);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Check for token in localStorage on mount (Alternative to /auth/me if that API doesn't exist)
+  // Check for token in localStorage on mount
   useEffect(() => {
     const storedUser = localStorage.getItem("userInfo");
     if (storedUser) {
@@ -31,9 +20,9 @@ export const AuthProvider = ({ children }) => {
     setLoading(false);
   }, []);
 
+  // --- REGISTER ---
   const register = async (name, email, password, phoneNumber) => {
     try {
-      // Sending 'phoneNumber' to match your Mongoose Model
       const res = await axiosInstance.post("/auth/register", { name, email, password, phoneNumber });
       
       const userData = res.data;
@@ -49,9 +38,11 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const login = async (email, password) => {
+  // --- LOGIN (Email OR Phone) ---
+  const login = async (identifier, password) => {
     try {
-      const res = await axiosInstance.post("/auth/login", { email, password });
+      // We send 'identifier' which matches the backend expectation for Email or Phone
+      const res = await axiosInstance.post("/auth/login", { identifier, password });
       
       const userData = res.data;
       setUser(userData);
@@ -66,6 +57,7 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  // --- LOGOUT ---
   const logout = async () => {
     try {
       await axiosInstance.post("/auth/logout");
@@ -80,8 +72,41 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  // --- FORGOT PASSWORD (Send OTP) ---
+  const forgotPassword = async (email) => {
+      try {
+          await axiosInstance.post("/auth/forgot-password", { email });
+          showToast("success", "OTP sent to your email");
+      } catch (err) {
+          const msg = err.response?.data?.message || "Failed to send OTP";
+          showToast("error", msg);
+          throw err;
+      }
+  };
+
+  // --- RESET PASSWORD (Verify OTP & Set New Password) ---
+  const resetPassword = async (email, otp, newPassword) => {
+      try {
+          await axiosInstance.post("/auth/reset-password", { email, otp, newPassword });
+          showToast("success", "Password reset successfully. Please Login.");
+      } catch (err) {
+          const msg = err.response?.data?.message || "Reset failed";
+          showToast("error", msg);
+          throw err;
+      }
+  };
+
   return (
-    <AuthContext.Provider value={{ user, setUser, loading, login, register, logout }}>
+    <AuthContext.Provider value={{ 
+        user, 
+        setUser, 
+        loading, 
+        login, 
+        register, 
+        logout,
+        forgotPassword,
+        resetPassword 
+    }}>
       {children}
     </AuthContext.Provider>
   );

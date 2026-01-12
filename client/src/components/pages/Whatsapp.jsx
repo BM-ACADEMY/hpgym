@@ -1,5 +1,5 @@
 import React from 'react'
-import Logo from '@/assets/images/logo.jpeg';
+import Logo from '@/assets/images/logo.png';
 import { FloatingWhatsApp } from 'react-floating-whatsapp'
 
 const Whatsapp = () => {

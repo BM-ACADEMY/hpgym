@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Menu, X, LogIn, User, LogOut, LayoutDashboard, ChevronDown } from "lucide-react"; 
 import { useNavigate } from "react-router-dom"; 
 import { useAuth } from "@/Context/Authcontext"; 
-import logo from "@/assets/images/logo.jpeg";
+import logo from "@/assets/images/logo.png";
 
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false); 
