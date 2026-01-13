@@ -8,15 +8,17 @@ const services = [
   {
     id: 1,
     title: "PERSONAL TRAINING",
-    description: "One-on-one coaching tailored to your specific goals.",
+    description: "One-on-one coaching at HP Fitness Studio, Pondicherry for strength & muscle goals.",
     // Image: Trainer helping client
     image: Personaltrainer, 
     icon: <Dumbbell className="w-8 h-8 text-white mb-2" />,
+    alt:"Personal training session at HP Fitness Studio in Pondicherry",
   },
   {
     id: 2,
     title: "BODY TONE UP",
-    description: "Sculpt and define muscles with targeted resistance.",
+    alt:"Body toning workout at HP Fitness Studio in Pondicherry",
+    description: "Targeted workouts to sculpt muscles and improve overall fitness.",
     // Image: Woman lifting weights/toning
     image: bodytone, 
     icon: <PersonStanding className="w-8 h-8 text-white mb-2" />,
@@ -24,7 +26,8 @@ const services = [
   {
     id: 3,
     title: "WEIGHT LOSS",
-    description: "High-intensity cardio circuits designed to burn fat fast.",
+    alt:"Weight loss and fat burning program at HP Fitness Studio in Pondicherry",
+    description: "High-intensity programs for fat loss and cardio results.",
     // Image: High intensity rope workout
     image: weightloss, 
     icon: <Activity className="w-8 h-8 text-white mb-2" />,
@@ -32,7 +35,8 @@ const services = [
   {
     id: 4,
     title: "CONTEST PREP",
-    description: "Professional physique coaching for stage competition.",
+    alt:"Contest preparation bodybuilding training at HP Fitness Studio in Pondicherry",
+    description: "Coaching for bodybuilding & fitness competitions, including diet & training.",
     // Image: Bodybuilder posing
     image: "https://anbfnatural.com/wp-content/uploads/2024/09/ANBF-natural-bodybuilding-Mens-physique-2-portrait.png", 
     icon: <Trophy className="w-8 h-8 text-white mb-2" />,
@@ -63,8 +67,9 @@ const GymServicesSection = () => {
           <h3 className="uppercase tracking-[0.2em] text-sm font-semibold mb-3">
             Our Services
           </h3>
-          <h2 className="text-4xl md:text-4xl font-extrabold uppercase leading-tight max-w-3xl mx-auto">
-            Solutions For Moving Better <br /> & Feeling Healthier
+          <h2 className="text-2xl md:text-4xl font-bold uppercase leading-tight max-w-5xl mx-auto">
+            PERSONAL TRAINING & FITNESS SOLUTIONS IN PONDICHERRY instead of SOLUTIONS FOR MOVING BETTER & FEELING HEALTHIER
+
           </h2>
         </div>
 
@@ -78,7 +83,7 @@ const GymServicesSection = () => {
               {/* Background Image */}
               <img
                 src={service.image}
-                alt={service.title}
+                alt={service.alt}
                 className="w-full h-full object-cover object-top transition-transform duration-500 group-hover:scale-110"
               />
 

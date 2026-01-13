@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
-import axiosInstance from "@/api/axiosInstance";
-import { showToast } from "@/utils/customToast";
+import axiosInstance from "@/api/axiosInstance"; // Check your path
+import { showToast } from "@/utils/customToast"; // Check your path
 import {
   MoreVertical,
   UserPlus,
@@ -22,9 +22,11 @@ import {
   Info,
   Timer,
   Filter,
-  ChevronDown, // Added
-  Check,       // Added
-  AlertTriangle // Added for delete modal
+  ChevronDown,
+  Check,
+  AlertTriangle,
+  History, // Added
+  IndianRupee // Added for amount
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -50,6 +52,11 @@ const Users = () => {
   const [selectedUser, setSelectedUser] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // --- DETAILS MODAL TABS ---
+  const [detailsTab, setDetailsTab] = useState("overview"); // 'overview' or 'history'
+  const [userHistory, setUserHistory] = useState([]);
+  const [loadingHistory, setLoadingHistory] = useState(false);
+
   // --- DELETE MODAL STATE ---
   const [deleteModal, setDeleteModal] = useState({
     isOpen: false,
@@ -62,6 +69,7 @@ const Users = () => {
     isActive: false,
     startDate: "",
     endDate: "",
+    amount: "", // Added Amount
     totalDays: 0,
   });
 
@@ -78,7 +86,6 @@ const Users = () => {
   const [openDropdownId, setOpenDropdownId] = useState(null);
   const [formData, setFormData] = useState({
     name: "",
-    email: "",
     phoneNumber: "",
     password: "",
   });
@@ -96,10 +103,21 @@ const Users = () => {
     }
   };
 
+  const fetchUserHistory = async (userId) => {
+    setLoadingHistory(true);
+    try {
+        const res = await axiosInstance.get(`/users/${userId}/history`);
+        setUserHistory(res.data);
+    } catch (error) {
+        console.error("Failed to load history");
+    } finally {
+        setLoadingHistory(false);
+    }
+  };
+
   useEffect(() => {
     fetchUsers();
     
-    // Global click handler to close dropdowns
     const handleClickOutside = (event) => {
       setOpenDropdownId(null);
       if (filterRef.current && !filterRef.current.contains(event.target)) {
@@ -182,7 +200,6 @@ const Users = () => {
       
       const matchesSearch =
         (user.name?.toLowerCase() || "").includes(term) ||
-        (user.email?.toLowerCase() || "").includes(term) ||
         (user.customerId?.toLowerCase() || "").includes(term);
 
       const matchesTab = activeTab === "blocked" ? user.isBlocked : !user.isBlocked;
@@ -241,10 +258,12 @@ const Users = () => {
     try {
       await axiosInstance.put(
         `/users/${selectedUser._id}/subscription`,
-        subPlan
+        subPlan // Now includes Amount
       );
       showToast("success", "Subscription plan updated");
       await fetchUsers();
+      // Optionally refresh history if staying in modal
+      await fetchUserHistory(selectedUser._id);
       setIsDetailsOpen(false);
     } catch (error) {
       showToast("error", "Update failed");
@@ -270,7 +289,7 @@ const Users = () => {
       userId: user._id,
       userName: user.name,
     });
-    setOpenDropdownId(null); // Close action menu
+    setOpenDropdownId(null); 
   };
 
   const confirmDelete = async () => {
@@ -294,12 +313,11 @@ const Users = () => {
     if (user && type === "edit") {
       setFormData({
         name: user.name,
-        email: user.email,
         phoneNumber: user.phoneNumber,
         password: "",
       });
     } else {
-      setFormData({ name: "", email: "", phoneNumber: "", password: "" });
+      setFormData({ name: "",  phoneNumber: "", password: "" });
     }
     setIsModalOpen(true);
     setOpenDropdownId(null);
@@ -307,12 +325,15 @@ const Users = () => {
 
   const openDetailsModal = (user) => {
     setSelectedUser(user);
+    setDetailsTab("overview"); // Reset to overview
     setSubPlan({
       isActive: user.subscription?.planStatus !== "inactive",
       startDate: user.subscription?.startDate?.split("T")[0] || "",
       endDate: user.subscription?.endDate?.split("T")[0] || "",
+      amount: user.subscription?.amount || "", // Load existing amount if any
       totalDays: 0,
     });
+    fetchUserHistory(user._id); // Fetch history immediately
     setIsDetailsOpen(true);
     setOpenDropdownId(null);
   };
@@ -351,17 +372,6 @@ const Users = () => {
       </span>
     );
   };
-
-  // --- FILTER OPTIONS CONFIG ---
-  const filterOptions = [
-    { value: "all", label: "All Plans" },
-    { value: "active", label: "Active Plan" },
-    { value: "expiring_soon", label: "Expiring Soon" },
-    { value: "expired", label: "Expired Plan" },
-    { value: "inactive", label: "No Plan" },
-  ];
-
-  const currentFilterLabel = filterOptions.find(o => o.value === planFilter)?.label;
 
   // --- ACTION MENU COMPONENT ---
   const ActionMenu = ({ user, index, totalItems }) => {
@@ -402,8 +412,7 @@ const Users = () => {
                   onClick={() => openDetailsModal(user)}
                   className="flex items-center w-full px-3 py-2 text-sm text-gray-700 rounded-lg hover:bg-gray-50 gap-3 font-medium"
                 >
-                  <Eye size={14} className="text-gray-500" /> View Details &
-                  Plan
+                  <Eye size={14} className="text-gray-500" /> View Details & Plan
                 </button>
                 <div className="h-px bg-gray-100 my-1"></div>
                 <button
@@ -433,7 +442,6 @@ const Users = () => {
                   {user.isBlocked ? "Unblock User" : "Block User"}
                 </button>
                 <div className="h-px bg-gray-100 my-1"></div>
-                {/* Updated Delete Handler */}
                 <button
                   onClick={() => initiateDelete(user)}
                   className="flex items-center w-full px-3 py-2 text-sm text-red-600 rounded-lg hover:bg-red-50 gap-3"
@@ -447,6 +455,15 @@ const Users = () => {
       </div>
     );
   };
+
+  const filterOptions = [
+    { value: "all", label: "All Plans" },
+    { value: "active", label: "Active Plan" },
+    { value: "expiring_soon", label: "Expiring Soon" },
+    { value: "expired", label: "Expired Plan" },
+    { value: "inactive", label: "No Plan" },
+  ];
+  const currentFilterLabel = filterOptions.find(o => o.value === planFilter)?.label;
 
   return (
     <div className="p-4 sm:p-6 bg-gray-50 min-h-screen">
@@ -490,7 +507,7 @@ const Users = () => {
             ))}
           </div>
 
-          {/* NEW: Custom Animated Plan Filter */}
+          {/* Plan Filter */}
           <div ref={filterRef} className="relative w-full sm:w-56 z-20">
              <button 
                onClick={() => setIsFilterOpen(!isFilterOpen)}
@@ -500,10 +517,7 @@ const Users = () => {
                     <Filter size={16} className="text-gray-400" />
                     <span className="text-sm font-medium">{currentFilterLabel}</span>
                 </div>
-                <motion.div 
-                  animate={{ rotate: isFilterOpen ? 180 : 0 }}
-                  transition={{ duration: 0.2 }}
-                >
+                <motion.div animate={{ rotate: isFilterOpen ? 180 : 0 }} transition={{ duration: 0.2 }}>
                     <ChevronDown size={16} className="text-gray-400" />
                 </motion.div>
              </button>
@@ -543,7 +557,7 @@ const Users = () => {
           <Search className="absolute left-3 top-2.5 text-gray-400" size={18} />
           <input
             type="text"
-            placeholder="Search ID, Name, Email..."
+            placeholder="Search ID, Name..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-red-500 bg-gray-50 focus:bg-white transition-colors text-sm"
@@ -584,7 +598,6 @@ const Users = () => {
                           <p className="font-medium text-gray-900">
                             {user.name}
                           </p>
-                          <p className="text-xs text-gray-500">{user.email}</p>
                         </td>
                         <td className="px-6 py-4">
                           {getStatusBadge(user.subscription?.planStatus)}
@@ -778,15 +791,6 @@ const Users = () => {
                       placeholder="Full Name"
                     />
                     <input
-                      type="email"
-                      name="email"
-                      required
-                      value={formData.email}
-                      onChange={handleInputChange}
-                      className="w-full px-4 py-2 border border-gray-200 rounded-lg outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 transition-all"
-                      placeholder="Email Address"
-                    />
-                    <input
                       type="tel"
                       name="phoneNumber"
                       required
@@ -881,7 +885,7 @@ const Users = () => {
         )}
       </AnimatePresence>
 
-      {/* --- USER DETAILS & PLAN MODAL --- */}
+      {/* --- USER DETAILS & PLAN & HISTORY MODAL --- */}
       <AnimatePresence>
         {isDetailsOpen && selectedUser && (
           <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
@@ -896,10 +900,10 @@ const Users = () => {
               initial={{ opacity: 0, scale: 0.95, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className="bg-white rounded-2xl shadow-2xl w-full max-w-lg p-0 relative z-10 overflow-hidden"
+              className="bg-white rounded-2xl shadow-2xl w-full max-w-lg p-0 relative z-10 overflow-hidden flex flex-col max-h-[90vh]"
             >
               {/* Modal Header */}
-              <div className="bg-gray-50 px-6 py-4 border-b border-gray-100 flex justify-between items-center">
+              <div className="bg-gray-50 px-6 py-4 border-b border-gray-100 flex justify-between items-center shrink-0">
                 <div>
                   <h2 className="text-lg font-bold text-gray-900">
                     User Details
@@ -919,168 +923,204 @@ const Users = () => {
                 </div>
               </div>
 
-              <div className="p-6 space-y-6">
-                {/* Basic Info */}
-                <div className="grid grid-cols-2 gap-4 text-sm">
-                  <div>
-                    <label className="text-gray-400 text-xs uppercase font-bold tracking-wider">
-                      Full Name
-                    </label>
-                    <p className="font-medium text-gray-800 mt-0.5">
-                      {selectedUser.name}
-                    </p>
-                  </div>
-                  <div>
-                    <label className="text-gray-400 text-xs uppercase font-bold tracking-wider">
-                      Joined Date
-                    </label>
-                    <p className="font-medium text-gray-800 mt-0.5">
-                      {selectedUser.createdAt
-                        ? new Date(selectedUser.createdAt).toLocaleDateString()
-                        : "N/A"}
-                    </p>
-                  </div>
-                  <div className="col-span-2">
-                    <label className="text-gray-400 text-xs uppercase font-bold tracking-wider">
-                      Email Address
-                    </label>
-                    <p className="font-medium text-gray-800 mt-0.5">
-                      {selectedUser.email}
-                    </p>
-                  </div>
-                  <div className="col-span-2">
-                    <label className="text-gray-400 text-xs uppercase font-bold tracking-wider">
-                      Phone Number
-                    </label>
-                    <p className="font-medium text-gray-800 mt-0.5">
-                      {selectedUser.phoneNumber}
-                    </p>
-                  </div>
-                </div>
+              {/* Tabs */}
+              <div className="flex border-b border-gray-100 shrink-0">
+                 <button 
+                    onClick={() => setDetailsTab("overview")}
+                    className={`flex-1 py-3 text-sm font-medium transition-colors border-b-2 ${detailsTab === "overview" ? "text-red-600 border-red-600" : "text-gray-500 border-transparent hover:text-gray-700"}`}
+                 >
+                    Overview & Plan
+                 </button>
+                 <button 
+                    onClick={() => setDetailsTab("history")}
+                    className={`flex-1 py-3 text-sm font-medium transition-colors border-b-2 ${detailsTab === "history" ? "text-red-600 border-red-600" : "text-gray-500 border-transparent hover:text-gray-700"}`}
+                 >
+                    History
+                 </button>
+              </div>
 
-                <div className="h-px bg-gray-100"></div>
-
-                {/* Subscription Section */}
-                <div>
-                  <div className="flex justify-between items-center mb-4">
-                    <h3 className="text-md font-bold text-gray-900 flex items-center gap-2">
-                      <Calendar size={18} className="text-red-500" />{" "}
-                      Subscription Plan
-                    </h3>
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setSubPlan((prev) => ({
-                          ...prev,
-                          isActive: !prev.isActive,
-                        }))
-                      }
-                      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                        subPlan.isActive ? "bg-green-500" : "bg-gray-200"
-                      }`}
-                    >
-                      <span
-                        className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                          subPlan.isActive ? "translate-x-6" : "translate-x-1"
-                        }`}
-                      />
-                    </button>
-                  </div>
-
-                  <div
-                    className={`space-y-4 transition-opacity ${
-                      subPlan.isActive
-                        ? "opacity-100"
-                        : "opacity-50 pointer-events-none"
-                    }`}
-                  >
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-xs font-medium text-gray-700 mb-1">
-                          Start Date
-                        </label>
-                        <input
-                          type="date"
-                          value={subPlan.startDate}
-                          onChange={(e) =>
-                            setSubPlan({
-                              ...subPlan,
-                              startDate: e.target.value,
-                            })
-                          }
-                          className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-red-500"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-xs font-medium text-gray-700 mb-1">
-                          End Date
-                        </label>
-                        <input
-                          type="date"
-                          value={subPlan.endDate}
-                          onChange={(e) =>
-                            setSubPlan({ ...subPlan, endDate: e.target.value })
-                          }
-                          className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-red-500"
-                        />
-                      </div>
-                    </div>
-
-                    {/* --- COUNTDOWN TIMER --- */}
-                    {subPlan.isActive && (
-                      <div className="mt-3 pt-3 border-t border-gray-100">
-                        <div className="flex items-center gap-2 text-gray-500 font-medium text-xs uppercase tracking-wide mb-1.5">
-                          <Timer size={13} />
-                          <span>Subscription Ends In</span>
-                        </div>
-
-                        <div className="flex items-center gap-5 px-1">
-                          {[
-                            { label: "Months", val: timeLeft.months },
-                            { label: "Days", val: timeLeft.days },
-                            { label: "Hours", val: timeLeft.hours },
-                            { label: "Min", val: timeLeft.minutes },
-                            { label: "Sec", val: timeLeft.seconds },
-                          ].map((item, idx) => (
-                            <div
-                              key={idx}
-                              className="flex flex-col items-center"
-                            >
-                              <span className="text-2xl font-medium text-gray-900 tabular-nums leading-none">
-                                {String(item.val).padStart(2, "0")}
-                              </span>
-                              <span className="text-[9px] font-medium text-gray-400 leading-tight">
-                                {item.label}
-                              </span>
+              {/* Scrollable Content */}
+              <div className="p-6 overflow-y-auto">
+                 {detailsTab === "overview" ? (
+                    <div className="space-y-6">
+                        {/* Basic Info */}
+                        <div className="grid grid-cols-2 gap-4 text-sm">
+                            <div>
+                                <label className="text-gray-400 text-xs uppercase font-bold tracking-wider">Full Name</label>
+                                <p className="font-medium text-gray-800 mt-0.5">{selectedUser.name}</p>
                             </div>
-                          ))}
+                            <div>
+                                <label className="text-gray-400 text-xs uppercase font-bold tracking-wider">Joined Date</label>
+                                <p className="font-medium text-gray-800 mt-0.5">
+                                    {selectedUser.createdAt ? new Date(selectedUser.createdAt).toLocaleDateString() : "N/A"}
+                                </p>
+                            </div>
+                            <div className="col-span-2">
+                                <label className="text-gray-400 text-xs uppercase font-bold tracking-wider">Phone Number</label>
+                                <p className="font-medium text-gray-800 mt-0.5">{selectedUser.phoneNumber}</p>
+                            </div>
                         </div>
-                      </div>
-                    )}
-                  </div>
-                </div>
+
+                        <div className="h-px bg-gray-100"></div>
+
+                        {/* Subscription Section */}
+                        <div>
+                            <div className="flex justify-between items-center mb-4">
+                                <h3 className="text-md font-bold text-gray-900 flex items-center gap-2">
+                                    <Calendar size={18} className="text-red-500" /> Subscription Plan
+                                </h3>
+                                <button
+                                    type="button"
+                                    onClick={() => setSubPlan((prev) => ({ ...prev, isActive: !prev.isActive }))}
+                                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${subPlan.isActive ? "bg-green-500" : "bg-gray-200"}`}
+                                >
+                                    <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${subPlan.isActive ? "translate-x-6" : "translate-x-1"}`} />
+                                </button>
+                            </div>
+
+                            <div className={`space-y-4 transition-opacity ${subPlan.isActive ? "opacity-100" : "opacity-50 pointer-events-none"}`}>
+                                {/* New Amount Field */}
+                                <div>
+                                    <label className="block text-xs font-medium text-gray-700 mb-1">Plan Amount</label>
+                                    <div className="relative">
+                                        <IndianRupee size={14} className="absolute left-3 top-2.5 text-gray-400" />
+                                        <input
+                                            type="number"
+                                            value={subPlan.amount}
+                                            onChange={(e) => setSubPlan({...subPlan, amount: e.target.value})}
+                                            className="w-full pl-9 pr-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-red-500"
+                                            placeholder="Enter Amount"
+                                        />
+                                    </div>
+                                </div>
+                                
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="block text-xs font-medium text-gray-700 mb-1">Start Date</label>
+                                        <input
+                                            type="date"
+                                            value={subPlan.startDate}
+                                            onChange={(e) => setSubPlan({ ...subPlan, startDate: e.target.value })}
+                                            className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-red-500"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-medium text-gray-700 mb-1">End Date</label>
+                                        <input
+                                            type="date"
+                                            value={subPlan.endDate}
+                                            onChange={(e) => setSubPlan({ ...subPlan, endDate: e.target.value })}
+                                            className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-red-500"
+                                        />
+                                    </div>
+                                </div>
+
+                                {/* --- COUNTDOWN TIMER --- */}
+                                {subPlan.isActive && (
+                                    <div className="mt-3 pt-3 border-t border-gray-100">
+                                        <div className="flex items-center gap-2 text-gray-500 font-medium text-xs uppercase tracking-wide mb-1.5">
+                                            <Timer size={13} />
+                                            <span>Subscription Ends In</span>
+                                        </div>
+                                        <div className="flex items-center gap-5 px-1">
+                                            {[
+                                                { label: "Months", val: timeLeft.months },
+                                                { label: "Days", val: timeLeft.days },
+                                                { label: "Hours", val: timeLeft.hours },
+                                                { label: "Min", val: timeLeft.minutes },
+                                                { label: "Sec", val: timeLeft.seconds },
+                                            ].map((item, idx) => (
+                                                <div key={idx} className="flex flex-col items-center">
+                                                    <span className="text-2xl font-medium text-gray-900 tabular-nums leading-none">
+                                                        {String(item.val).padStart(2, "0")}
+                                                    </span>
+                                                    <span className="text-[9px] font-medium text-gray-400 leading-tight">
+                                                        {item.label}
+                                                    </span>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                 ) : (
+                    // HISTORY TAB CONTENT
+                    <div className="space-y-4">
+                        {loadingHistory ? (
+                            <div className="text-center py-10 text-gray-500 flex flex-col items-center gap-2">
+                                <Loader2 size={24} className="animate-spin text-red-500" />
+                                Loading History...
+                            </div>
+                        ) : userHistory.length > 0 ? (
+                             <div className="border border-gray-100 rounded-lg overflow-hidden">
+                                <table className="w-full text-sm text-left">
+                                    <thead className="bg-gray-50 text-gray-600 font-medium border-b border-gray-100">
+                                        <tr>
+                                            <th className="px-4 py-3">Dates</th>
+                                            <th className="px-4 py-3">Amount</th>
+                                            <th className="px-4 py-3 text-right">Status</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-gray-100">
+                                        {userHistory.map((history) => (
+                                            <tr key={history._id} className="hover:bg-gray-50/50">
+                                                <td className="px-4 py-3">
+                                                    <div className="text-gray-900 font-medium">
+                                                        {new Date(history.startDate).toLocaleDateString()}
+                                                    </div>
+                                                    <div className="text-xs text-gray-500">
+                                                        to {new Date(history.endDate).toLocaleDateString()}
+                                                    </div>
+                                                </td>
+                                                <td className="px-4 py-3 font-medium text-gray-900">
+                                                    ₹{history.amount}
+                                                </td>
+                                                <td className="px-4 py-3 text-right">
+                                                    <span className={`inline-block px-2 py-0.5 rounded text-[10px] uppercase font-bold ${
+                                                        history.planStatus === 'active' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'
+                                                    }`}>
+                                                        {history.planStatus}
+                                                    </span>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                             </div>
+                        ) : (
+                            <div className="text-center py-10 text-gray-400 flex flex-col items-center gap-2">
+                                <History size={32} className="opacity-20" />
+                                <p>No subscription history found.</p>
+                            </div>
+                        )}
+                    </div>
+                 )}
               </div>
 
               {/* Footer */}
-              <div className="bg-gray-50 px-6 py-4 border-t border-gray-100 flex justify-end gap-3">
+              <div className="bg-gray-50 px-6 py-4 border-t border-gray-100 flex justify-end gap-3 shrink-0">
                 <button
                   onClick={closeModal}
                   className="px-4 py-2 text-sm font-medium text-gray-600 hover:text-gray-800 bg-white border border-gray-200 rounded-lg hover:bg-gray-50"
                 >
                   Close
                 </button>
-                <button
-                  onClick={handleSavePlan}
-                  disabled={isSubmitting}
-                  className="px-4 py-2 text-sm font-medium text-white bg-red-500 rounded-lg hover:bg-red-600 shadow-sm flex items-center gap-2"
-                >
-                  {isSubmitting ? (
-                    <Loader2 size={16} className="animate-spin" />
-                  ) : (
-                    <Save size={16} />
-                  )}{" "}
-                  Save Plan
-                </button>
+                {detailsTab === "overview" && (
+                    <button
+                    onClick={handleSavePlan}
+                    disabled={isSubmitting}
+                    className="px-4 py-2 text-sm font-medium text-white bg-red-500 rounded-lg hover:bg-red-600 shadow-sm flex items-center gap-2"
+                    >
+                    {isSubmitting ? (
+                        <Loader2 size={16} className="animate-spin" />
+                    ) : (
+                        <Save size={16} />
+                    )}{" "}
+                    Save Plan
+                    </button>
+                )}
               </div>
             </motion.div>
           </div>

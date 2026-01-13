@@ -12,7 +12,6 @@ const authRoutes = require('./routes/authRoutes');
 const userRoutes = require('./routes/userRoutes');
 const galleryRoutes = require('./routes/galleryRoutes');
 const testimonialRoutes = require('./routes/testimonialRoutes');
-const enquiryRoutes = require('./routes/enquiryRoutes');
 
 dotenv.config();
 connectDB();
@@ -41,7 +40,6 @@ app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/gallery', galleryRoutes);
 app.use('/api/testimonials', testimonialRoutes);
-app.use('/api/enquiry', enquiryRoutes);
 
 app.get('/', (req, res) => {
     res.send('API is running...');

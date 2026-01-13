@@ -1,5 +1,5 @@
 import React from 'react';
-import Footerlogo from '@/assets/images/logo.png';
+import Footerlogo from '@/assets/images/logoblack.jpeg';
 import FooterBackground from '@/assets/images/FIT0019.png';
 import { Instagram, Mail, MapPin, Phone } from 'lucide-react';
 
@@ -35,7 +35,7 @@ const Footer = () => {
                 <img src={Footerlogo} alt="Footer Logo" className="h-28" />
               </div>
               <p className="text-gray-500 text-sm text-justify">
-                Discover Battle Fitness A/C - a premier gym in Thiruvarur and Mannargudi offering elite training programs and a lifestyle of wellness, strength, and transformation.
+                Discover HP Fitness Studio – a premium gym in Pondicherry offering expert personal training, modern equipment, and complete fitness solutions.
               </p>
               <div className="flex space-x-4 mt-4 md:mt-0">
               <a href="https://www.instagram.com/battle_fitness_field/?igsh=bjVhNml2dGNpdzg4#" target="_blank" className="text-gray-500 hover:text-red-400 transition">
@@ -51,8 +51,6 @@ const Footer = () => {
                 <li><a href="#home" className="text-gray-500 hover:text-red-400 transition">Home</a></li>
                 <li><a href="#about" className="text-gray-500 hover:text-red-400 transition">About</a></li>
                 <li><a href="#services" className="text-gray-500 hover:text-red-400 transition">Services</a></li>
-                <li><a href="#trainers" className="text-gray-500 hover:text-red-400 transition">Trainers</a></li>
-                <li><a href="#franchise" className="text-gray-500 hover:text-red-400 transition">Franchise</a></li>
               </ul>
             </div>
 

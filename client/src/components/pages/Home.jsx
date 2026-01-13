@@ -11,6 +11,7 @@ const slides = [
   {
     id: 1,
     image: GymImage1,
+    alt:"HP Fitness Studio strength training session in Pondicherry",
     // We can use JSX inside the data for custom highlighting
     title: (
       <>
@@ -19,10 +20,12 @@ const slides = [
       </>
     ),
     subtitle: "Train Hard. Stay Consistent. Level Up.",
+    
   },
   {
     id: 2,
     image: GymImage2, // Replace with GymImage2
+    alt:"HP Fitness Studio personal training and performance workout in Pondicherry",
     title: (
       <>
         "Push Your <span className="text-[#dc2626]">Limits</span> and Break
@@ -71,14 +74,19 @@ export default function HomeSection() {
           exit="exit"
         >
           {/* Background Image Layer */}
-          <motion.div
-            variants={fadeVariants}
-            className="absolute inset-0 w-full h-full bg-cover bg-top"
-            style={{ backgroundImage: `url(${slides[currentSlide].image})` }}
-          >
-             {/* Dark Overlay (Built into the slide so it fades with the image) */}
-            <div className="absolute inset-0 bg-black/50"></div>
-          </motion.div>
+         <motion.div
+  variants={fadeVariants}
+  className="absolute inset-0 w-full h-full"
+>
+  <img
+    src={slides[currentSlide].image}
+    alt={slides[currentSlide].alt}
+    className="w-full h-full object-cover object-top"
+  />
+  {/* Dark Overlay */}
+  <div className="absolute inset-0 bg-black/50"></div>
+</motion.div>
+
 
           {/* Content Layer */}
           <div className="relative z-10 flex h-full items-center justify-center px-4 sm:px-6 md:px-8 lg:px-10 text-center">

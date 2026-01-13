@@ -17,10 +17,9 @@ const Homeroutes = () => {
         <AboutSection/>
         <ServicesSection/>
         <WhyChooseUs/>
-
         <TestimonialSection/>
         <GymGallery/>
-        <Enquirypage/>
+        {/* <Enquirypage/> */}
         <Footer/>
     </div>
   )

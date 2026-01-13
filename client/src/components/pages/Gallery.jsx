@@ -54,7 +54,7 @@ const GymGallery = () => {
             See The <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#F94C30] to-[#E02D2D]">Results</span>
           </h2>
           <p className="mt-4 text-gray-500 max-w-2xl mx-auto">
-            Take a look inside our facility and see the community in action.
+            Explore our gym, personal training sessions, and fitness community at HP Fitness Studio in Pondicherry.
           </p>
         </div>
 

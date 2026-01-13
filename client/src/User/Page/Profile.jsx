@@ -115,11 +115,6 @@ const Profile = () => {
                         icon={<User size={18} />} 
                     />
                     <ProfileField 
-                        label="Email Address" 
-                        value={user?.email} 
-                        icon={<Mail size={18} />} 
-                    />
-                    <ProfileField 
                         label="Phone Number" 
                         value={user?.phoneNumber} 
                         icon={<Phone size={18} />} 
@@ -255,7 +250,6 @@ const EditProfileModal = ({ user, onClose, setUser, variants, backdropVariants }
     const [loading, setLoading] = useState(false);
     const [formData, setFormData] = useState({
         name: user?.name || '',
-        email: user?.email || '',
         phoneNumber: user?.phoneNumber || ''
     });
 
@@ -307,16 +301,6 @@ const EditProfileModal = ({ user, onClose, setUser, variants, backdropVariants }
                             className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-red-500 focus:border-transparent outline-none transition-all"
                             value={formData.name}
                             onChange={(e) => setFormData({...formData, name: e.target.value})}
-                            required
-                        />
-                    </div>
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
-                        <input 
-                            type="email" 
-                            className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-red-500 focus:border-transparent outline-none transition-all"
-                            value={formData.email}
-                            onChange={(e) => setFormData({...formData, email: e.target.value})}
                             required
                         />
                     </div>

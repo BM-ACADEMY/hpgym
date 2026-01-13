@@ -256,7 +256,6 @@ const Overviews = () => {
                           </div>
                           <div>
                             <p className="font-medium text-gray-900 line-clamp-1">{user.name}</p>
-                            <p className="text-xs text-gray-400">{user.email}</p>
                           </div>
                         </div>
                       </td>

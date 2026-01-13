@@ -1,7 +1,6 @@
-// Context/Authcontext.jsx
 import { createContext, useContext, useState, useEffect } from "react";
-import axiosInstance from "../api/axiosInstance.jsx"; // Ensure this path matches your project structure
-import { showToast } from "../utils/customToast.jsx"; // Ensure this path matches your project structure
+import axiosInstance from "../api/axiosInstance.jsx";
+import { showToast } from "../utils/customToast.jsx";
 
 const AuthContext = createContext();
 
@@ -11,7 +10,6 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // Check for token in localStorage on mount
   useEffect(() => {
     const storedUser = localStorage.getItem("userInfo");
     if (storedUser) {
@@ -20,14 +18,15 @@ export const AuthProvider = ({ children }) => {
     setLoading(false);
   }, []);
 
-  // --- REGISTER ---
-  const register = async (name, email, password, phoneNumber) => {
+  // --- REGISTER (Name, Phone, Password) ---
+  const register = async (name, password, phoneNumber) => {
     try {
-      const res = await axiosInstance.post("/auth/register", { name, email, password, phoneNumber });
+      // Removed email from request body
+      const res = await axiosInstance.post("/auth/register", { name, password, phoneNumber });
       
       const userData = res.data;
       setUser(userData);
-      localStorage.setItem("userInfo", JSON.stringify(userData)); // Persist login
+      localStorage.setItem("userInfo", JSON.stringify(userData));
       
       showToast("success", "Registered successfully");
       return userData;
@@ -38,15 +37,14 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  // --- LOGIN (Email OR Phone) ---
+  // --- LOGIN (Phone Only) ---
   const login = async (identifier, password) => {
     try {
-      // We send 'identifier' which matches the backend expectation for Email or Phone
       const res = await axiosInstance.post("/auth/login", { identifier, password });
       
       const userData = res.data;
       setUser(userData);
-      localStorage.setItem("userInfo", JSON.stringify(userData)); // Persist login
+      localStorage.setItem("userInfo", JSON.stringify(userData)); 
 
       showToast("success", "Login successful");
       return userData;
@@ -66,34 +64,9 @@ export const AuthProvider = ({ children }) => {
       showToast("success", "Logged out successfully");
     } catch (err) {
       console.log(err);
-      // Force logout on frontend even if backend fails
       localStorage.removeItem("userInfo");
       setUser(null); 
     }
-  };
-
-  // --- FORGOT PASSWORD (Send OTP) ---
-  const forgotPassword = async (email) => {
-      try {
-          await axiosInstance.post("/auth/forgot-password", { email });
-          showToast("success", "OTP sent to your email");
-      } catch (err) {
-          const msg = err.response?.data?.message || "Failed to send OTP";
-          showToast("error", msg);
-          throw err;
-      }
-  };
-
-  // --- RESET PASSWORD (Verify OTP & Set New Password) ---
-  const resetPassword = async (email, otp, newPassword) => {
-      try {
-          await axiosInstance.post("/auth/reset-password", { email, otp, newPassword });
-          showToast("success", "Password reset successfully. Please Login.");
-      } catch (err) {
-          const msg = err.response?.data?.message || "Reset failed";
-          showToast("error", msg);
-          throw err;
-      }
   };
 
   return (
@@ -103,9 +76,7 @@ export const AuthProvider = ({ children }) => {
         loading, 
         login, 
         register, 
-        logout,
-        forgotPassword,
-        resetPassword 
+        logout
     }}>
       {children}
     </AuthContext.Provider>

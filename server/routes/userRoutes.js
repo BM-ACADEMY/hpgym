@@ -9,7 +9,8 @@ const {
     deleteUser,
     toggleBlockUser,
     changeUserPassword,
-    updateSubscription
+    updateSubscription,
+    getUserHistory
 } = require('../controllers/userController');
 
 // 1. Protect all routes (User must be logged in)
@@ -30,7 +31,10 @@ router.route('/:id')
 router.put('/:id/block', admin, toggleBlockUser);
 router.put('/:id/subscription', admin, updateSubscription);
 
-// 5. Password Change (Allowed for user)
+// 5. NEW: Get Subscription History
+router.get('/:id/history', admin, getUserHistory);
+
+// 6. Password Change
 router.put('/:id/password', changeUserPassword);
 
 module.exports = router;

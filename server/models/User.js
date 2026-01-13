@@ -4,16 +4,11 @@ const userSchema = new mongoose.Schema({
     customerId: {
         type: String,
         unique: true,
-        sparse: true // Allows admins to have no ID without error
+        sparse: true 
     },
     name: {
         type: String,
         required: true
-    },
-    email: {
-        type: String,
-        required: true,
-        unique: true
     },
     password: {
         type: String,
@@ -40,11 +35,9 @@ const userSchema = new mongoose.Schema({
             default: 'inactive'
         },
         startDate: { type: Date },
-        endDate: { type: Date }
-    },
-    resetPasswordOtp: { type: String },
-    resetPasswordOtpExpire: { type: Date },
-
+        endDate: { type: Date },
+        amount: { type: Number, default: 0 } // Added Amount here
+    }
 }, { timestamps: true });
 
 module.exports = mongoose.model('User', userSchema);

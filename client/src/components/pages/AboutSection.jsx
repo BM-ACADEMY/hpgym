@@ -45,7 +45,7 @@ const AboutSection = () => {
             <div className="absolute -bottom-16 -left-10 sm:-bottom-24 sm:-left-16 lg:-bottom-30 lg:-left-20 w-[115%] sm:w-[110%] lg:w-full h-full z-10">
               <img 
                 src={Photo}
-                alt="Fitness Model" 
+                alt="HP Fitness Studio personal training and strength workout in Pondicherry" 
                 className="w-full h-full contrast-125 mask-image-gradient object-cover"
                 style={{
                   clipPath: 'polygon(0 0, 100% 0, 100% 100%, 0% 100%)' 
@@ -65,21 +65,19 @@ const AboutSection = () => {
               </span>
             </div>
             
-            <h2 className="text-4xl sm:text-5xl md:text-6xl font-black text-black uppercase leading-[1.1] mb-6">
-              Give a shape of <br className="hidden sm:block" /> your body
+            <h2 className="text-3xl sm:text-4xl md:text-4xl font-black text-black uppercase leading-[1.1] mb-6">
+              Transform Your Body with Expert Personal Training Instead of GIVE A SHAPE OF YOUR BODY
+ {/* <br className="hidden sm:block" /> your body */}
             </h2>
             
             <p className="text-gray-600 leading-relaxed max-w-lg mx-auto lg:mx-0">
-              This also meant we needed to provide a learning environment run by
-              experienced and successful coaches. However, our most important goal
-              was to create a welcoming atmosphere and community in which everyone
-              feels a sense of belonging.
+              At HP Fitness Studio in Pondicherry, we provide personal training, strength workouts, fat loss programs, and muscle building sessions. Our expert coaches create a welcoming environment to help you achieve your fitness goals efficiently and safely. Whether you’re a beginner or a professional athlete, we design customized programs to shape your body and boost your performance.
             </p>
           </div>
 
           <div className="pt-2">
             <a 
-              href="#enquiry"
+              href="#contact"
               className="group inline-flex items-center justify-center gap-2 bg-[#FF5400] text-white px-8 py-3 sm:px-10 sm:py-4 font-semibold text-sm uppercase tracking-wide shadow-lg shadow-orange-200 transition-all duration-300 ease-in-out hover:bg-orange-600 hover:scale-105 hover:shadow-xl active:scale-95"
             >
               <span>Learn More</span>

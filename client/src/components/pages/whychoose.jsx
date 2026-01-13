@@ -56,7 +56,7 @@ const WhyChooseUs = () => {
                    Certified Trainers
                 </h3>
                 <p className="text-gray-300 text-sm line-clamp-3">
-                  Train under nationally certified fitness experts with proven track records to guide your journey.
+                  Train with certified personal trainers in Pondicherry, guiding your strength, fat loss, and muscle-building journey.
                 </p>
               </div>
             </motion.div>
@@ -67,15 +67,19 @@ const WhyChooseUs = () => {
               className="bg-orange-500 rounded-xl p-6 flex flex-col justify-center relative overflow-hidden h-64 sm:h-auto"
             >
               <div className="z-10 relative">
-                <h2 className="text-3xl font-black uppercase mb-4 leading-tight">
-                  Why <br/> Choose <br/> Us?
+                <h2 className="text-2xl font-black uppercase mb-4 leading-tight">
+                  WHY CHOOSE HP FITNESS STUDIO?
+
                 </h2>
                 <p className="text-white/90 text-sm mb-6">
-                  We don't just provide equipment; we provide a roadmap to a healthier, stronger you.
+                  At HP Fitness Studio in Pondicherry, we provide expert guidance, certified trainers, and modern equipment to help you reach your fitness goals
                 </p>
-                <button className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider hover:translate-x-1 transition-transform">
-                  Join Now <ArrowRight size={16} />
-                </button>
+                <a
+  href="#contact"
+  className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider hover:translate-x-1 transition-transform scroll-smooth"
+>
+  Join Now <ArrowRight size={16} />
+</a>
               </div>
               {/* Decorative background element */}
               <Dumbbell className="absolute -bottom-4 -right-4 text-white/20 w-32 h-32 rotate-[-15deg]" />
@@ -95,7 +99,7 @@ const WhyChooseUs = () => {
               <div className="absolute bottom-0 left-0 p-6">
                 <h3 className="text-xl font-bold mb-2">Modern Equipment</h3>
                 <p className="text-gray-300 text-sm line-clamp-3">
-                  Top-notch, cutting-edge gym equipment designed to support all fitness levels safely.
+                  State-of-the-art gym equipment in Pondicherry to support all fitness levels safely.
                 </p>
               </div>
             </motion.div>
@@ -114,7 +118,7 @@ const WhyChooseUs = () => {
               <div className="absolute bottom-0 left-0 p-6">
                 <h3 className="text-xl font-bold mb-2">Motivational Vibes</h3>
                 <p className="text-gray-300 text-sm line-clamp-3">
-                   Positive, high-energy atmosphere to keep you pushing toward your personal goals.
+                  Positive, high-energy gym environment in Pondicherry to motivate and push you toward your fitness goals.
                 </p>
               </div>
             </motion.div>
@@ -146,8 +150,8 @@ const WhyChooseUs = () => {
                 <Trophy size={16} />
                 <span>Success Stories</span>
               </div>
-              <h2 className="text-3xl lg:text-4xl font-bold text-white leading-tight">
-                See how we transform lives every single day.
+              <h2 className="text-xl lg:text-xl font-bold text-white leading-tight">
+               See how HP Fitness Studio in Pondicherry transforms lives every day through personal training and fitness programs.
               </h2>
             </div>
           </motion.div>

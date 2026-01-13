@@ -1,8 +1,6 @@
 const User = require("../models/User");
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcryptjs");
-const crypto = require("crypto"); // Built-in Node module for OTP generation
-const sendEmail = require("../utils/sendEmail");
 
 const generateToken = (userId) => {
   return jwt.sign({ userId }, process.env.JWT_SECRET, { expiresIn: "30d" });
@@ -11,21 +9,19 @@ const generateToken = (userId) => {
 // @desc    Register a new user
 // @route   POST /api/auth/register
 const registerUser = async (req, res) => {
-  const { name, email, phoneNumber, password, role } = req.body;
+  const { name, phoneNumber, password, role } = req.body;
 
   try {
-    const userExists = await User.findOne({
-      $or: [{ email }, { phoneNumber }],
-    });
+    const userExists = await User.findOne({ phoneNumber });
 
     if (userExists) {
-      return res.status(400).json({ message: "User with this email or phone already exists" });
+      return res.status(400).json({ message: "User with this phone number already exists" });
     }
 
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
 
-    // Generate Customer ID (Your existing logic)
+    // Generate Customer ID
     let newCustomerId = undefined;
     const userRole = role || "user";
     if (userRole !== 'admin') {
@@ -41,7 +37,8 @@ const registerUser = async (req, res) => {
     }
 
     const user = await User.create({
-      name, email, phoneNumber,
+      name, 
+      phoneNumber,
       password: hashedPassword,
       role: userRole,
       customerId: newCustomerId
@@ -50,22 +47,7 @@ const registerUser = async (req, res) => {
     if (user) {
       const token = generateToken(user._id);
       
-      // --- SEND WELCOME EMAIL ---
-      const message = `
-        <h1>Welcome to the Club, ${user.name}!</h1>
-        <p>Your account has been successfully created.</p>
-        <p>Customer ID: <strong>${user.customerId || 'N/A'}</strong></p>
-      `;
-      try {
-          await sendEmail({
-              email: user.email,
-              subject: "Welcome to HPFS Club!",
-              message,
-          });
-      } catch (emailError) {
-          console.error("Welcome email failed:", emailError);
-          // Don't fail registration if email fails, just log it
-      }
+      // Removed Email Sending Logic
 
       res.cookie("jwt", token, {
         httpOnly: true,
@@ -78,7 +60,6 @@ const registerUser = async (req, res) => {
         _id: user._id,
         customerId: user.customerId,
         name: user.name,
-        email: user.email,
         phoneNumber: user.phoneNumber,
         role: user.role,
       });
@@ -90,16 +71,13 @@ const registerUser = async (req, res) => {
   }
 };
 
-// @desc    Login user (Email OR Phone)
+// @desc    Login user (Phone Only)
 // @route   POST /api/auth/login
 const loginUser = async (req, res) => {
-  const { identifier, password } = req.body; // 'identifier' can be email or phone
+  const { identifier, password } = req.body; // identifier is the phoneNumber
 
   try {
-    // Check if identifier is email or phone
-    const user = await User.findOne({
-        $or: [{ email: identifier }, { phoneNumber: identifier }]
-    });
+    const user = await User.findOne({ phoneNumber: identifier });
 
     if (user && user.isBlocked) {
         return res.status(403).json({ message: "Your account has been blocked. Contact Admin." });
@@ -119,7 +97,6 @@ const loginUser = async (req, res) => {
         _id: user._id,
         customerId: user.customerId,
         name: user.name,
-        email: user.email,
         phoneNumber: user.phoneNumber,
         role: user.role,
       });
@@ -136,90 +113,4 @@ const logoutUser = (req, res) => {
   res.status(200).json({ message: "Logged out successfully" });
 };
 
-// @desc    Forgot Password - Send OTP
-// @route   POST /api/auth/forgot-password
-const forgotPassword = async (req, res) => {
-    const { email } = req.body;
-
-    try {
-        const user = await User.findOne({ email });
-        if (!user) {
-            return res.status(404).json({ message: "User not found" });
-        }
-
-        // Generate 6 digit OTP
-        const otp = Math.floor(100000 + Math.random() * 900000).toString();
-
-        // Hash OTP before saving to DB (Security best practice)
-        const salt = await bcrypt.genSalt(10);
-        const hashedOtp = await bcrypt.hash(otp, salt);
-
-        user.resetPasswordOtp = hashedOtp;
-        user.resetPasswordOtpExpire = Date.now() + 10 * 60 * 1000; // 10 Minutes validity
-        await user.save();
-
-        const message = `
-            <h1>Password Reset Request</h1>
-            <p>Your OTP for password reset is:</p>
-            <h2 style="color: red;">${otp}</h2>
-            <p>This OTP is valid for 10 minutes.</p>
-        `;
-
-        try {
-            await sendEmail({
-                email: user.email,
-                subject: "Password Reset OTP",
-                message,
-            });
-            res.status(200).json({ message: "OTP sent to email" });
-        } catch (error) {
-            user.resetPasswordOtp = undefined;
-            user.resetPasswordOtpExpire = undefined;
-            await user.save();
-            return res.status(500).json({ message: "Email could not be sent" });
-        }
-
-    } catch (error) {
-        res.status(500).json({ message: error.message });
-    }
-};
-
-// @desc    Reset Password via OTP
-// @route   POST /api/auth/reset-password
-const resetPassword = async (req, res) => {
-    const { email, otp, newPassword } = req.body;
-
-    try {
-        const user = await User.findOne({ 
-            email, 
-            resetPasswordOtpExpire: { $gt: Date.now() } 
-        });
-
-        if (!user) {
-            return res.status(400).json({ message: "Invalid Email or OTP has expired" });
-        }
-
-        // Verify OTP
-        const isMatch = await bcrypt.compare(otp, user.resetPasswordOtp);
-        if (!isMatch) {
-            return res.status(400).json({ message: "Invalid OTP" });
-        }
-
-        // Hash new password
-        const salt = await bcrypt.genSalt(10);
-        user.password = await bcrypt.hash(newPassword, salt);
-        
-        // Clear OTP fields
-        user.resetPasswordOtp = undefined;
-        user.resetPasswordOtpExpire = undefined;
-        
-        await user.save();
-
-        res.status(200).json({ message: "Password reset successful" });
-
-    } catch (error) {
-        res.status(500).json({ message: error.message });
-    }
-};
-
-module.exports = { registerUser, loginUser, logoutUser, forgotPassword, resetPassword };
+module.exports = { registerUser, loginUser, logoutUser };

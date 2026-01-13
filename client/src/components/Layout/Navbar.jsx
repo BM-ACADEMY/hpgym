@@ -41,7 +41,7 @@ const Navbar = () => {
     { name: "Home", id: "home" },
     { name: "About", id: "about" },
     { name: "Services", id: "services" },
-    { name: "Enquiry", id: "enquiry" },
+    { name: "Contact", id: "contact" },
   ];
 
   // --- FIX 1: UPDATED NAVIGATION LOGIC ---

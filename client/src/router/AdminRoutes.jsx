@@ -14,7 +14,7 @@ const AdminRoutes = () => {
             <Route element={<AdminDashboard />}>
 
                 {/* 2. Change the Index Route to Navigate to users */}
-                <Route index element={<Navigate to="users" replace />} />
+                <Route index element={<Navigate to="overview" replace />} />
 
                 {/* Existing Routes */}
                 <Route path="users" element={<Users />} />
