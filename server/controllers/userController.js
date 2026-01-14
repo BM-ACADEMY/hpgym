@@ -1,5 +1,5 @@
 const User = require("../models/User");
-const SubscriptionHistory = require("../models/SubscriptionHistory"); // Import History Model
+const SubscriptionHistory = require("../models/SubscriptionHistory");
 const bcrypt = require("bcryptjs");
 
 // --- Helper: Check and Update Expiry (The "Auto-Off" Logic) ---
@@ -41,16 +41,61 @@ const updateSubscription = async (req, res) => {
 
         if (!user) return res.status(404).json({ message: "User not found" });
 
+        // 1. HANDLE TURNING OFF (Admin manually deletes/cancels plan)
         if (!isActive) {
-            // Admin manually turning off subscription
+            // --- FIX START: Update the History Record first ---
+            
+            // Find the most recent active history for this user
+            const currentHistory = await SubscriptionHistory.findOne({ 
+                user: user._id,
+                planStatus: 'active' 
+            }).sort({ createdAt: -1 });
+
+            if (currentHistory) {
+                currentHistory.planStatus = 'cancelled'; // Mark history as cancelled
+                await currentHistory.save();
+            }
+            // --- FIX END ---
+
+            // Now clear the User's subscription data
             user.subscription = { 
                 planStatus: 'inactive', 
                 startDate: null, 
                 endDate: null, 
                 amount: 0 
             };
+            await user.save();
+            return res.json(user);
+        } 
+        
+        // 2. HANDLE TURNING ON / EDITING
+        // Check if user is ALREADY active (or expiring soon). 
+        const isEditingCurrentPlan = 
+            user.subscription.planStatus === 'active' || 
+            user.subscription.planStatus === 'expiring_soon';
+
+        if (isEditingCurrentPlan) {
+            // --- SCENARIO A: EDIT EXISTING PLAN ---
+            const lastHistory = await SubscriptionHistory.findOne({ user: user._id })
+                .sort({ createdAt: -1 });
+
+            if (lastHistory) {
+                lastHistory.amount = amount || 0;
+                lastHistory.startDate = startDate;
+                lastHistory.endDate = endDate;
+                await lastHistory.save();
+            } else {
+                // Fallback if no history exists
+                await SubscriptionHistory.create({
+                    user: user._id,
+                    amount: amount || 0,
+                    startDate,
+                    endDate,
+                    planStatus: 'active'
+                });
+            }
         } else {
-            // 1. Create a History Record
+            // --- SCENARIO B: CREATE NEW PLAN ---
             await SubscriptionHistory.create({
                 user: user._id,
                 amount: amount || 0,
@@ -58,20 +103,21 @@ const updateSubscription = async (req, res) => {
                 endDate,
                 planStatus: 'active'
             });
-
-            // 2. Update User's Current Subscription
-            // Note: We force status to 'active' initially. 
-            // The checkSubscriptionStatus will handle expiring_soon later.
-            user.subscription = {
-                startDate,
-                endDate,
-                amount: amount || 0,
-                planStatus: 'active' 
-            };
         }
 
-        await user.save();
-        res.json(user);
+        // 3. Update User's Current Subscription Data
+        user.subscription = {
+            startDate,
+            endDate,
+            amount: amount || 0,
+            planStatus: 'active' 
+        };
+
+        const updatedUser = await checkSubscriptionStatus(user);
+        await updatedUser.save();
+        
+        res.json(updatedUser);
+
     } catch (error) {
         res.status(500).json({ message: error.message });
     }
@@ -94,31 +140,24 @@ const generateCustomerId = async () => {
   return 'HPFS-0001';
 };
 
-// @desc    Get all users (Auto-updates expiry status on fetch)
-// @route   GET /api/users
+// @desc    Get all users
 const getAllUsers = async (req, res) => {
   try {
     let users = await User.find({ role: "user" }).select("-password").sort({ createdAt: -1 });
-    
-    // Run the expiry check on all users before sending response
-    // This ensures the Admin always sees the correct "Expired" status
     const updatedUsers = await Promise.all(users.map(async (user) => {
         return await checkSubscriptionStatus(user);
     }));
-
     res.json(updatedUsers);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 };
 
-// @desc    Get Single User (Auto-updates expiry status on fetch)
-// @route   GET /api/users/:id
+// @desc    Get Single User
 const getUserById = async (req, res) => {
     try {
         let user = await User.findById(req.params.id).select('-password');
         if (user) {
-            // Check expiry before returning
             user = await checkSubscriptionStatus(user);
             res.json(user);
         } else {
@@ -129,17 +168,14 @@ const getUserById = async (req, res) => {
     }
 };
 
-// @desc    Create User (Admin Action)
-// @route   POST /api/users
+// @desc    Create User
 const createUser = async (req, res) => {
   const { name, phoneNumber, password, role } = req.body;
-
   try {
     const userExists = await User.findOne({ phoneNumber });
     if (userExists) {
       return res.status(400).json({ message: "User with this phone number already exists" });
     }
-
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
     const newCustomerId = await generateCustomerId();
@@ -155,13 +191,7 @@ const createUser = async (req, res) => {
     });
 
     if (user) {
-      res.status(201).json({
-        _id: user._id,
-        customerId: user.customerId,
-        name: user.name,
-        phoneNumber: user.phoneNumber,
-        role: user.role,
-      });
+      res.status(201).json({ _id: user._id });
     } else {
       res.status(400).json({ message: "Invalid user data" });
     }
@@ -171,7 +201,6 @@ const createUser = async (req, res) => {
 };
 
 // @desc    Update User
-// @route   PUT /api/users/:id
 const updateUser = async (req, res) => {
   try {
     const user = await User.findById(req.params.id);
@@ -189,14 +218,13 @@ const updateUser = async (req, res) => {
 };
 
 // @desc    Toggle Block Status
-// @route   PUT /api/users/:id/block
 const toggleBlockUser = async (req, res) => {
   try {
     const user = await User.findById(req.params.id);
     if (user) {
       user.isBlocked = !user.isBlocked;
       await user.save();
-      res.json({ message: `User ${user.isBlocked ? 'Blocked' : 'Unblocked'}`, isBlocked: user.isBlocked });
+      res.json({ message: `User status updated`, isBlocked: user.isBlocked });
     } else {
       res.status(404).json({ message: "User not found" });
     }
@@ -206,7 +234,6 @@ const toggleBlockUser = async (req, res) => {
 };
 
 // @desc    Change Password
-// @route   PUT /api/users/:id/password
 const changeUserPassword = async (req, res) => {
     try {
         const { password } = req.body;
@@ -225,13 +252,10 @@ const changeUserPassword = async (req, res) => {
 }
 
 // @desc    Delete User
-// @route   DELETE /api/users/:id
 const deleteUser = async (req, res) => {
   try {
     const user = await User.findById(req.params.id);
     if (user) {
-      // Optional: Delete history when user is deleted?
-      // await SubscriptionHistory.deleteMany({ user: user._id }); 
       await user.deleteOne();
       res.json({ message: "User removed" });
     } else {
@@ -242,7 +266,7 @@ const deleteUser = async (req, res) => {
   }
 };
 
-// New Endpoint: Get History for a specific user
+// Get History
 const getUserHistory = async (req, res) => {
     try {
         const history = await SubscriptionHistory.find({ user: req.params.id }).sort({ createdAt: -1 });

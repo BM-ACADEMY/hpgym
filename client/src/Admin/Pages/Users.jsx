@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
-import axiosInstance from "@/api/axiosInstance"; // Check your path
-import { showToast } from "@/utils/customToast"; // Check your path
+import axiosInstance from "@/api/axiosInstance"; 
+import { showToast } from "@/utils/customToast"; 
 import {
   MoreVertical,
   UserPlus,
@@ -25,18 +25,20 @@ import {
   ChevronDown,
   Check,
   AlertTriangle,
-  History, // Added
-  IndianRupee // Added for amount
+  History,
+  IndianRupee,
+  X
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
 const Users = () => {
+  // --- MAIN STATE ---
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("active");
   const [searchTerm, setSearchTerm] = useState("");
 
-  // --- FILTER STATE & REFS ---
+  // --- FILTER STATE ---
   const [planFilter, setPlanFilter] = useState("all");
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const filterRef = useRef(null);
@@ -57,21 +59,26 @@ const Users = () => {
   const [userHistory, setUserHistory] = useState([]);
   const [loadingHistory, setLoadingHistory] = useState(false);
 
-  // --- DELETE MODAL STATE ---
+  // --- DELETE USER MODAL STATE ---
   const [deleteModal, setDeleteModal] = useState({
     isOpen: false,
     userId: null,
     userName: "",
   });
 
-  // --- SUBSCRIPTION STATE ---
+  // --- SUBSCRIPTION FORM STATE ---
   const [subPlan, setSubPlan] = useState({
     isActive: false,
     startDate: "",
     endDate: "",
-    amount: "", // Added Amount
+    amount: "",
     totalDays: 0,
   });
+
+  // --- UI STATE FOR SUBSCRIPTION VIEW ---
+  // true = show input fields (Edit/Create mode)
+  // false = show summary card (View mode)
+  const [isEditingPlan, setIsEditingPlan] = useState(false);
 
   // --- COUNTDOWN STATE ---
   const [timeLeft, setTimeLeft] = useState({
@@ -115,6 +122,7 @@ const Users = () => {
     }
   };
 
+  // --- INITIAL LOAD & OUTSIDE CLICK ---
   useEffect(() => {
     fetchUsers();
     
@@ -253,22 +261,61 @@ const Users = () => {
     }
   };
 
+  // --- SAVE SUBSCRIPTION HANDLER ---
   const handleSavePlan = async () => {
+    if (!subPlan.startDate || !subPlan.endDate || !subPlan.amount) {
+        showToast("error", "Please fill all subscription fields");
+        return;
+    }
+
     setIsSubmitting(true);
     try {
+      // isActive: true tells backend to create/update an active plan
       await axiosInstance.put(
         `/users/${selectedUser._id}/subscription`,
-        subPlan // Now includes Amount
+        { ...subPlan, isActive: true } 
       );
-      showToast("success", "Subscription plan updated");
+      showToast("success", "Subscription plan saved");
       await fetchUsers();
-      // Optionally refresh history if staying in modal
       await fetchUserHistory(selectedUser._id);
-      setIsDetailsOpen(false);
+      
+      // Switch UI back to View Mode (Card View)
+      setIsEditingPlan(false);
+      // Ensure local state reflects active status
+      setSubPlan(prev => ({ ...prev, isActive: true })); 
     } catch (error) {
       showToast("error", "Update failed");
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  // --- DELETE SUBSCRIPTION HANDLER ---
+  const handleDeletePlan = async () => {
+    if (!window.confirm("Are you sure you want to delete this subscription? The user will lose access immediately.")) return;
+    
+    setIsSubmitting(true);
+    try {
+        // isActive: false tells backend to set status to 'inactive' and update history
+        await axiosInstance.put(`/users/${selectedUser._id}/subscription`, { isActive: false });
+        showToast("success", "Subscription Removed");
+        await fetchUsers();
+        await fetchUserHistory(selectedUser._id);
+        
+        // Reset Local State to Empty
+        setSubPlan({
+            isActive: false,
+            startDate: "",
+            endDate: "",
+            amount: "",
+            totalDays: 0,
+        });
+        // Switch UI to "Create Mode" (Inputs visible, but empty)
+        setIsEditingPlan(true); 
+    } catch (error) {
+        showToast("error", "Failed to delete plan");
+    } finally {
+        setIsSubmitting(false);
     }
   };
 
@@ -282,7 +329,7 @@ const Users = () => {
     }
   };
 
-  // --- DELETE LOGIC ---
+  // --- DELETE USER LOGIC ---
   const initiateDelete = (user) => {
     setDeleteModal({
       isOpen: true,
@@ -307,6 +354,7 @@ const Users = () => {
     }
   };
 
+  // --- MODAL OPENERS ---
   const openModal = (type, user = null) => {
     setModalType(type);
     setSelectedUser(user);
@@ -325,15 +373,26 @@ const Users = () => {
 
   const openDetailsModal = (user) => {
     setSelectedUser(user);
-    setDetailsTab("overview"); // Reset to overview
+    setDetailsTab("overview"); 
+    
+    // Determine if user has a valid active plan
+    const hasActivePlan = 
+      user.subscription?.planStatus === "active" || 
+      user.subscription?.planStatus === "expiring_soon";
+
+    // If plan exists -> Show Card View (isEditingPlan = false)
+    // If NO plan -> Show Input View (isEditingPlan = true)
+    setIsEditingPlan(!hasActivePlan);
+
     setSubPlan({
-      isActive: user.subscription?.planStatus !== "inactive",
+      isActive: hasActivePlan,
       startDate: user.subscription?.startDate?.split("T")[0] || "",
       endDate: user.subscription?.endDate?.split("T")[0] || "",
-      amount: user.subscription?.amount || "", // Load existing amount if any
+      amount: user.subscription?.amount || "", 
       totalDays: 0,
     });
-    fetchUserHistory(user._id); // Fetch history immediately
+    
+    fetchUserHistory(user._id); 
     setIsDetailsOpen(true);
     setOpenDropdownId(null);
   };
@@ -456,6 +515,7 @@ const Users = () => {
     );
   };
 
+  // --- FILTER LABELS ---
   const filterOptions = [
     { value: "all", label: "All Plans" },
     { value: "active", label: "Active Plan" },
@@ -467,7 +527,7 @@ const Users = () => {
 
   return (
     <div className="p-4 sm:p-6 bg-gray-50 min-h-screen">
-      {/* Header */}
+      {/* HEADER */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
         <div>
           <h1 className="text-2xl font-bold text-gray-800">User Management</h1>
@@ -486,7 +546,7 @@ const Users = () => {
         </button>
       </div>
 
-      {/* Tabs, Filter & Search */}
+      {/* FILTER & SEARCH BAR */}
       <div className="flex flex-col xl:flex-row justify-between items-center bg-white p-3 sm:p-4 rounded-lg shadow-sm mb-6 gap-4 border border-gray-100 z-10">
         <div className="flex flex-col sm:flex-row w-full xl:w-auto gap-4">
           
@@ -507,7 +567,7 @@ const Users = () => {
             ))}
           </div>
 
-          {/* Plan Filter */}
+          {/* Plan Filter Dropdown */}
           <div ref={filterRef} className="relative w-full sm:w-56 z-20">
              <button 
                onClick={() => setIsFilterOpen(!isFilterOpen)}
@@ -552,7 +612,7 @@ const Users = () => {
           </div>
         </div>
 
-        {/* Search Bar */}
+        {/* Search Input */}
         <div className="relative w-full xl:w-64 z-0">
           <Search className="absolute left-3 top-2.5 text-gray-400" size={18} />
           <input
@@ -565,7 +625,7 @@ const Users = () => {
         </div>
       </div>
 
-      {/* CONTENT AREA */}
+      {/* CONTENT AREA: TABLES & CARDS */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden relative z-0">
         {loading ? (
           <div className="p-20 text-center text-gray-500">Loading users...</div>
@@ -754,7 +814,7 @@ const Users = () => {
         )}
       </div>
 
-      {/* --- ADD/EDIT MODAL --- */}
+      {/* --- ADD/EDIT USER MODAL (Not Subscription) --- */}
       <AnimatePresence>
         {isModalOpen && (
           <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
@@ -837,7 +897,7 @@ const Users = () => {
         )}
       </AnimatePresence>
 
-      {/* --- DELETE CONFIRMATION MODAL --- */}
+      {/* --- DELETE CONFIRMATION MODAL (USER) --- */}
       <AnimatePresence>
         {deleteModal.isOpen && (
             <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
@@ -885,7 +945,7 @@ const Users = () => {
         )}
       </AnimatePresence>
 
-      {/* --- USER DETAILS & PLAN & HISTORY MODAL --- */}
+      {/* --- USER DETAILS & PLAN MODAL --- */}
       <AnimatePresence>
         {isDetailsOpen && selectedUser && (
           <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
@@ -963,90 +1023,176 @@ const Users = () => {
 
                         <div className="h-px bg-gray-100"></div>
 
-                        {/* Subscription Section */}
+                        {/* --- SUBSCRIPTION LOGIC --- */}
                         <div>
                             <div className="flex justify-between items-center mb-4">
                                 <h3 className="text-md font-bold text-gray-900 flex items-center gap-2">
                                     <Calendar size={18} className="text-red-500" /> Subscription Plan
                                 </h3>
-                                <button
-                                    type="button"
-                                    onClick={() => setSubPlan((prev) => ({ ...prev, isActive: !prev.isActive }))}
-                                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${subPlan.isActive ? "bg-green-500" : "bg-gray-200"}`}
-                                >
-                                    <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${subPlan.isActive ? "translate-x-6" : "translate-x-1"}`} />
-                                </button>
-                            </div>
-
-                            <div className={`space-y-4 transition-opacity ${subPlan.isActive ? "opacity-100" : "opacity-50 pointer-events-none"}`}>
-                                {/* New Amount Field */}
-                                <div>
-                                    <label className="block text-xs font-medium text-gray-700 mb-1">Plan Amount</label>
-                                    <div className="relative">
-                                        <IndianRupee size={14} className="absolute left-3 top-2.5 text-gray-400" />
-                                        <input
-                                            type="number"
-                                            value={subPlan.amount}
-                                            onChange={(e) => setSubPlan({...subPlan, amount: e.target.value})}
-                                            className="w-full pl-9 pr-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-red-500"
-                                            placeholder="Enter Amount"
-                                        />
-                                    </div>
-                                </div>
                                 
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div>
-                                        <label className="block text-xs font-medium text-gray-700 mb-1">Start Date</label>
-                                        <input
-                                            type="date"
-                                            value={subPlan.startDate}
-                                            onChange={(e) => setSubPlan({ ...subPlan, startDate: e.target.value })}
-                                            className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-red-500"
-                                        />
-                                    </div>
-                                    <div>
-                                        <label className="block text-xs font-medium text-gray-700 mb-1">End Date</label>
-                                        <input
-                                            type="date"
-                                            value={subPlan.endDate}
-                                            onChange={(e) => setSubPlan({ ...subPlan, endDate: e.target.value })}
-                                            className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-red-500"
-                                        />
-                                    </div>
-                                </div>
-
-                                {/* --- COUNTDOWN TIMER --- */}
-                                {subPlan.isActive && (
-                                    <div className="mt-3 pt-3 border-t border-gray-100">
-                                        <div className="flex items-center gap-2 text-gray-500 font-medium text-xs uppercase tracking-wide mb-1.5">
-                                            <Timer size={13} />
-                                            <span>Subscription Ends In</span>
-                                        </div>
-                                        <div className="flex items-center gap-5 px-1">
-                                            {[
-                                                { label: "Months", val: timeLeft.months },
-                                                { label: "Days", val: timeLeft.days },
-                                                { label: "Hours", val: timeLeft.hours },
-                                                { label: "Min", val: timeLeft.minutes },
-                                                { label: "Sec", val: timeLeft.seconds },
-                                            ].map((item, idx) => (
-                                                <div key={idx} className="flex flex-col items-center">
-                                                    <span className="text-2xl font-medium text-gray-900 tabular-nums leading-none">
-                                                        {String(item.val).padStart(2, "0")}
-                                                    </span>
-                                                    <span className="text-[9px] font-medium text-gray-400 leading-tight">
-                                                        {item.label}
-                                                    </span>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    </div>
+                                {/* Toggle Switch: Only visible if creating new or cancelling creation (Edit mode) */}
+                                {isEditingPlan && !subPlan.isActive && (
+                                   <button 
+                                      type="button" 
+                                      onClick={() => setIsEditingPlan(!isEditingPlan)} 
+                                      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${isEditingPlan ? "bg-green-500" : "bg-gray-200"}`}
+                                   >
+                                        <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${isEditingPlan ? "translate-x-6" : "translate-x-1"}`} />
+                                    </button>
                                 )}
                             </div>
+
+                            {/* SCENARIO 1: VIEW MODE (Active Plan Summary Card) */}
+                            {subPlan.isActive && !isEditingPlan ? (
+                                <div className="bg-red-50 rounded-xl p-5 border border-red-100 relative overflow-hidden group">
+                                    {/* Decorative bg circle */}
+                                    <div className="absolute -right-6 -top-6 w-24 h-24 bg-red-100 rounded-full opacity-50 pointer-events-none"></div>
+                                    
+                                    <div className="relative z-10">
+                                        <div className="flex justify-between items-start mb-4">
+                                            <div>
+                                                <p className="text-xs font-bold text-red-500 uppercase tracking-wider mb-1">Current Plan</p>
+                                                <h4 className="text-2xl font-bold text-gray-900 flex items-baseline gap-1">
+                                                    ₹{subPlan.amount}
+                                                    <span className="text-sm font-normal text-gray-500">/total</span>
+                                                </h4>
+                                            </div>
+                                            <div className="flex gap-2">
+                                                <button 
+                                                    onClick={() => setIsEditingPlan(true)} 
+                                                    className="p-2 bg-white rounded-lg text-gray-600 hover:text-blue-600 hover:shadow-sm border border-transparent hover:border-gray-200 transition-all"
+                                                    title="Edit Plan"
+                                                >
+                                                    <Edit2 size={16} />
+                                                </button>
+                                                <button 
+                                                    onClick={handleDeletePlan} 
+                                                    className="p-2 bg-white rounded-lg text-gray-600 hover:text-red-600 hover:shadow-sm border border-transparent hover:border-gray-200 transition-all"
+                                                    title="Delete Plan"
+                                                >
+                                                    <Trash2 size={16} />
+                                                </button>
+                                            </div>
+                                        </div>
+
+                                        <div className="grid grid-cols-2 gap-4 text-sm mb-4">
+                                            <div>
+                                                <p className="text-gray-500 text-xs">Start Date</p>
+                                                <p className="font-medium text-gray-800">
+                                                    {new Date(subPlan.startDate).toLocaleDateString()}
+                                                </p>
+                                            </div>
+                                            <div>
+                                                <p className="text-gray-500 text-xs">End Date</p>
+                                                <p className="font-medium text-gray-800">
+                                                    {new Date(subPlan.endDate).toLocaleDateString()}
+                                                </p>
+                                            </div>
+                                        </div>
+
+                                        <div className="pt-3 border-t border-red-100/50 flex items-center gap-2">
+                                            <Clock size={14} className="text-red-500" />
+                                            <span className="text-sm font-medium text-red-700">
+                                                {timeLeft.isExpired 
+                                                    ? "Plan Expired" 
+                                                    : `${timeLeft.days} days, ${timeLeft.hours}h remaining`}
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                            ) : (
+                            /* SCENARIO 2: EDIT/CREATE MODE */
+                             <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-4">
+                                {isEditingPlan ? (
+                                    <>
+                                        <div className="p-4 bg-gray-50 rounded-xl border border-dashed border-gray-300">
+                                            <div className="mb-4">
+                                                <label className="block text-xs font-medium text-gray-700 mb-1">Amount (₹)</label>
+                                                <div className="relative">
+                                                    <IndianRupee size={14} className="absolute left-3 top-2.5 text-gray-400" />
+                                                    <input 
+                                                        type="number" 
+                                                        value={subPlan.amount} 
+                                                        onChange={(e) => setSubPlan({...subPlan, amount: e.target.value})} 
+                                                        className="w-full pl-9 pr-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-red-500 bg-white" 
+                                                        placeholder="0.00" 
+                                                    />
+                                                </div>
+                                            </div>
+                                            <div className="grid grid-cols-2 gap-4">
+                                                <div>
+                                                    <label className="block text-xs font-medium text-gray-700 mb-1">Start Date</label>
+                                                    <input 
+                                                        type="date" 
+                                                        value={subPlan.startDate} 
+                                                        onChange={(e) => setSubPlan({ ...subPlan, startDate: e.target.value })} 
+                                                        className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-red-500 bg-white" 
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <label className="block text-xs font-medium text-gray-700 mb-1">End Date</label>
+                                                    <input 
+                                                        type="date" 
+                                                        value={subPlan.endDate} 
+                                                        onChange={(e) => setSubPlan({ ...subPlan, endDate: e.target.value })} 
+                                                        className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-red-500 bg-white" 
+                                                    />
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        {/* Action buttons for Edit Mode */}
+                                        <div className="flex justify-end gap-3">
+                                            {/* Show Cancel if we are editing an EXISTING plan (returns to Card View) */}
+                                            {subPlan.isActive && (
+                                                <button 
+                                                    onClick={() => setIsEditingPlan(false)} 
+                                                    className="px-3 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-lg"
+                                                >
+                                                    Cancel
+                                                </button>
+                                            )}
+                                            
+                                            {/* Show Cancel if creating NEW (turns off toggle/edit mode) */}
+                                            {!subPlan.isActive && (
+                                                 <button 
+                                                    onClick={() => setIsEditingPlan(false)} 
+                                                    className="px-3 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-lg"
+                                                 >
+                                                    Cancel
+                                                 </button>
+                                            )}
+
+                                            <button 
+                                                onClick={handleSavePlan} 
+                                                disabled={isSubmitting} 
+                                                className="flex-1 sm:flex-none px-4 py-2 bg-red-500 text-white text-sm font-medium rounded-lg hover:bg-red-600 shadow-sm flex items-center justify-center gap-2"
+                                            >
+                                                {isSubmitting ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />} Save Plan
+                                            </button>
+                                        </div>
+                                    </>
+                                ) : (
+                                    /* Empty State / Prompt to Create */
+                                    <div className="text-center py-8 border-2 border-dashed border-gray-100 rounded-xl bg-gray-50/50">
+                                        <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center mx-auto mb-3 shadow-sm text-gray-400">
+                                            <Calendar size={20} />
+                                        </div>
+                                        <p className="text-sm text-gray-500 mb-3">No active subscription found.</p>
+                                        <button 
+                                            onClick={() => setIsEditingPlan(true)} 
+                                            className="text-sm font-medium text-red-600 hover:text-red-700 hover:underline"
+                                        >
+                                            Create Subscription
+                                        </button>
+                                    </div>
+                                )}
+                             </motion.div>
+                            )}
                         </div>
                     </div>
                  ) : (
-                    // HISTORY TAB CONTENT
+                    /* HISTORY TAB */
                     <div className="space-y-4">
                         {loadingHistory ? (
                             <div className="text-center py-10 text-gray-500 flex flex-col items-center gap-2">
@@ -1079,7 +1225,11 @@ const Users = () => {
                                                 </td>
                                                 <td className="px-4 py-3 text-right">
                                                     <span className={`inline-block px-2 py-0.5 rounded text-[10px] uppercase font-bold ${
-                                                        history.planStatus === 'active' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'
+                                                        history.planStatus === 'active' 
+                                                            ? 'bg-green-100 text-green-700' 
+                                                            : history.planStatus === 'cancelled'
+                                                            ? 'bg-red-100 text-red-700'
+                                                            : 'bg-gray-100 text-gray-600'
                                                     }`}>
                                                         {history.planStatus}
                                                     </span>
@@ -1107,20 +1257,6 @@ const Users = () => {
                 >
                   Close
                 </button>
-                {detailsTab === "overview" && (
-                    <button
-                    onClick={handleSavePlan}
-                    disabled={isSubmitting}
-                    className="px-4 py-2 text-sm font-medium text-white bg-red-500 rounded-lg hover:bg-red-600 shadow-sm flex items-center gap-2"
-                    >
-                    {isSubmitting ? (
-                        <Loader2 size={16} className="animate-spin" />
-                    ) : (
-                        <Save size={16} />
-                    )}{" "}
-                    Save Plan
-                    </button>
-                )}
               </div>
             </motion.div>
           </div>
