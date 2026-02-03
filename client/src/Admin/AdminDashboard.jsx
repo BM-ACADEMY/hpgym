@@ -2,23 +2,21 @@
 import React from 'react';
 import { useAuth } from '../Context/Authcontext';
 import { NavLink, Outlet } from 'react-router-dom';
-import { Activity, MessageSquare, LogOut, Users, ImageDownIcon, ChartNoAxesCombined  } from 'lucide-react';
-// Note: removed LayoutDashboard import as it is no longer used
+import { MessageSquare, LogOut, Users, ImageDownIcon, ChartNoAxesCombined, CreditCard } from 'lucide-react';
 
 const AdminDashboard = () => {
     const { user, logout } = useAuth();
 
-    // 1. Remove the "Dashboard" object from this array
     const sidebarLinks = [
         { name: "Overviews", path: "/admin/overview", icon: <ChartNoAxesCombined  size={20} /> },
         { name: "All Users", path: "/admin/users", icon: <Users size={20} /> },
+        { name: "Subscription", path: "/admin/subscription", icon: <CreditCard size={20} /> },
         { name: "Gallery", path: "/admin/gallery", icon: <ImageDownIcon size={20} /> },
         { name: "Testimonials", path: "/admin/testimonials", icon: <MessageSquare size={20} /> },
     ];
 
     return (
         <div className="flex flex-col h-screen bg-gray-50">
-            {/* ... Header code remains the same ... */}
             <div className="flex items-center justify-between px-4 md:px-8 border-b border-gray-200 py-3 bg-white shadow-sm z-10">
                 <a href="/" className="flex items-center gap-2 font-bold text-xl text-gray-600">
                     Hp Fitness Studio
@@ -40,14 +38,12 @@ const AdminDashboard = () => {
             </div>
 
             <div className="flex flex-1 overflow-hidden">
-                {/* Sidebar */}
                 <aside className="w-16 md:w-64 bg-white border-r border-gray-200 flex flex-col transition-all duration-300">
                     <div className="flex flex-col pt-6 gap-1">
                         {sidebarLinks.map((item, index) => (
                             <NavLink
                                 key={index}
                                 to={item.path}
-                                // Removed 'end' prop as it's not strictly needed for sub-routes
                                 className={({ isActive }) =>
                                     `flex items-center py-3 px-4 gap-3 border-r-4 transition-colors duration-200
                                     ${isActive

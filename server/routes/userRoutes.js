@@ -10,31 +10,40 @@ const {
     toggleBlockUser,
     changeUserPassword,
     updateSubscription,
-    getUserHistory
+    getUserHistory,
+    getInvoiceById,
+    sendSubscriptionReminder, 
+    sendSubscriptionWelcome   
 } = require('../controllers/userController');
 
-// 1. Protect all routes (User must be logged in)
+// Public Route
+router.get('/invoice/:id', getInvoiceById);
+
+// Protect all routes below
 router.use(protect);
 
-// 2. Admin Only Routes (List all users, Create user manually)
+// Admin Routes
 router.route('/')
     .get(admin, getAllUsers)   
     .post(admin, createUser);  
 
-// 3. Public/User Routes (Fetch own profile, Update own profile)
+// User Routes
 router.route('/:id')
-    .get(getUserById)         
-    .put(updateUser)          
+    .get(getUserById)          
+    .put(updateUser)           
     .delete(admin, deleteUser);
 
-// 4. Admin Only Actions
+// Admin Actions
 router.put('/:id/block', admin, toggleBlockUser);
 router.put('/:id/subscription', admin, updateSubscription);
 
-// 5. NEW: Get Subscription History
-router.get('/:id/history', admin, getUserHistory);
+// --- WHATSAPP ROUTES ---
+router.post('/:id/welcome', admin, sendSubscriptionWelcome);
+router.post('/:id/reminder', admin, sendSubscriptionReminder); 
 
-// 6. Password Change
+// History & Password
+// - Removed 'admin' middleware so users can see their own history
+router.get('/:id/history', getUserHistory); 
 router.put('/:id/password', changeUserPassword);
 
 module.exports = router;

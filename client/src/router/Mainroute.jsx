@@ -6,6 +6,7 @@ import PrivateRoute from "@/Context/PrivateRoute";
 import PublicRoute from "@/Context/PublicRoute";
 import UserRoutes from "./UserRoutes";
 import AdminRoutes from "./AdminRoutes";
+import Invoice from "@/Admin/Pages/Invoice";
 
 
 
@@ -14,6 +15,7 @@ const Mainroutes = () => {
     <Routes>
       {/* --- Public Routes --- */}
       <Route path="/*" element={<Homeroutes />} />
+      <Route path='/invoice/:id' element={<Invoice />} />
       
       <Route 
         path="/login" 

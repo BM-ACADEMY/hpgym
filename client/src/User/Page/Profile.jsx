@@ -4,8 +4,9 @@ import axiosInstance from '@/api/axiosInstance';
 import { showToast } from '@/utils/customToast'; 
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
-  User, Mail, Phone, Hash, ShieldCheck, 
-  Edit3, KeyRound, X, Save, Loader2, AlertTriangle // <--- Added AlertTriangle
+  User, Phone, Hash, ShieldCheck, 
+  Edit3, KeyRound, X, Save, Loader2, AlertTriangle, 
+  FileText, Calendar, CheckCircle, Clock, AlertCircle, Trash2, Info 
 } from 'lucide-react';
 import { format, isValid, differenceInDays } from 'date-fns'; 
 
@@ -14,6 +15,10 @@ const Profile = () => {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isPassModalOpen, setIsPassModalOpen] = useState(false);
   const [loadingData, setLoadingData] = useState(false);
+  
+  // New State for History
+  const [history, setHistory] = useState([]);
+  const [loadingHistory, setLoadingHistory] = useState(false);
 
   // 1. FETCH FRESH DATA ON MOUNT
   useEffect(() => {
@@ -23,7 +28,6 @@ const Profile = () => {
       setLoadingData(true);
       try {
         const res = await axiosInstance.get(`/users/${user._id}`); 
-        
         if (res.data) {
            setUser(prev => ({ ...prev, ...res.data }));
            const currentStorage = JSON.parse(localStorage.getItem("userInfo") || "{}");
@@ -36,8 +40,22 @@ const Profile = () => {
       }
     };
 
+    const fetchHistory = async () => {
+        if (!user?._id) return;
+        setLoadingHistory(true);
+        try {
+            const res = await axiosInstance.get(`/users/${user._id}/history`);
+            setHistory(res.data);
+        } catch (error) {
+            console.error("Failed to load history", error);
+        } finally {
+            setLoadingHistory(false);
+        }
+    };
+
     fetchLatestUserData();
-  }, []);
+    fetchHistory();
+  }, [user?._id]); // Added dependency to re-fetch if user ID changes (or on mount)
 
   // --- Animation Variants ---
   const modalVariants = {
@@ -65,6 +83,23 @@ const Profile = () => {
     const end = new Date(endDate);
     const today = new Date();
     return differenceInDays(end, today);
+  };
+
+  // Helper for Status Badges (Reused logic)
+  const getStatusBadge = (status) => {
+    const configs = {
+        active: { color: "bg-green-50 text-green-700 border-green-200", icon: <CheckCircle size={12} /> },
+        expiring_soon: { color: "bg-amber-50 text-amber-700 border-amber-200", icon: <Clock size={12} /> },
+        expired: { color: "bg-red-50 text-red-700 border-red-200", icon: <AlertCircle size={12} /> },
+        inactive: { color: "bg-gray-50 text-gray-600 border-gray-200", icon: <Info size={12} /> },
+        cancelled: { color: "bg-gray-50 text-gray-500 border-gray-200", icon: <Trash2 size={12} /> },
+    };
+    const config = configs[status] || configs.inactive;
+    return (
+        <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase border ${config.color}`}>
+            {config.icon} {status?.replace("_", " ")}
+        </span>
+    );
   };
 
   return (
@@ -129,7 +164,7 @@ const Profile = () => {
             </motion.div>
         </div>
 
-        {/* --- Right Column: Subscription --- */}
+        {/* --- Right Column: Current Subscription --- */}
         <div className="lg:col-span-1 space-y-6">
             <motion.div 
                 initial={{ opacity: 0, y: 20 }}
@@ -157,7 +192,9 @@ const Profile = () => {
 
                 <div className="flex-1 flex flex-col justify-center items-center text-center space-y-4 py-4">
                     {/* Status Badge */}
-                    <StatusBadge status={user?.subscription?.planStatus} />
+                    <div className={`px-4 py-1.5 rounded-full text-sm font-bold border ${user?.subscription?.planStatus === 'active' ? 'bg-green-100 text-green-700 border-green-200' : 'bg-gray-100 text-gray-600 border-gray-200'}`}>
+                        {user?.subscription?.planStatus === 'active' ? 'Active Plan' : (user?.subscription?.planStatus?.replace('_', ' ') || 'Inactive')}
+                    </div>
                     
                     <div className="w-full border-t border-gray-100 my-4"></div>
 
@@ -180,6 +217,77 @@ const Profile = () => {
             </motion.div>
         </div>
       </div>
+
+      {/* --- NEW SECTION: Subscription History & Invoices --- */}
+      <motion.div 
+        initial={{ opacity: 0, y: 20 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true }}
+        className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden"
+      >
+        <div className="p-6 border-b border-gray-100">
+            <h3 className="text-xl font-semibold text-gray-800 flex items-center gap-2">
+                <FileText className="text-blue-500" size={24} /> Subscription History & Invoices
+            </h3>
+        </div>
+
+        {loadingHistory ? (
+            <div className="p-10 text-center text-gray-500 flex justify-center">
+                <Loader2 className="animate-spin text-red-500" />
+            </div>
+        ) : (
+            <div className="overflow-x-auto">
+                {history.length > 0 ? (
+                    <table className="w-full text-sm text-left">
+                        <thead className="bg-gray-50 text-xs text-gray-500 uppercase font-bold border-b border-gray-100">
+                            <tr>
+                                <th className="px-6 py-4">Plan Details</th>
+                                <th className="px-6 py-4">Duration</th>
+                                <th className="px-6 py-4">Amount</th>
+                                <th className="px-6 py-4">Status</th>
+                                <th className="px-6 py-4 text-right">Invoice</th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-100">
+                            {history.map((h) => (
+                                <tr key={h._id} className="hover:bg-gray-50/50">
+                                    <td className="px-6 py-4 font-bold text-gray-800">
+                                        {h.planName || "Subscription Plan"}
+                                    </td>
+                                    <td className="px-6 py-4">
+                                        <div className="flex flex-col text-xs text-gray-500">
+                                            <span>From: {new Date(h.startDate).toLocaleDateString()}</span>
+                                            <span>To: {new Date(h.endDate).toLocaleDateString()}</span>
+                                        </div>
+                                    </td>
+                                    <td className="px-6 py-4 font-medium">
+                                        ₹{h.totalAmount || h.amount || 0}
+                                    </td>
+                                    <td className="px-6 py-4">
+                                        {getStatusBadge(h.planStatus)}
+                                    </td>
+                                    <td className="px-6 py-4 text-right">
+                                        <a 
+                                            href={`/invoice/${h._id}`} 
+                                            target="_blank" 
+                                            rel="noopener noreferrer" 
+                                            className="inline-flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-blue-600 bg-blue-50 rounded-lg hover:bg-blue-100 transition"
+                                        >
+                                            <FileText size={14} /> Views
+                                        </a>
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                ) : (
+                    <div className="p-8 text-center text-gray-400">
+                        No subscription history found.
+                    </div>
+                )}
+            </div>
+        )}
+      </motion.div>
 
       {/* --- Modals --- */}
       <AnimatePresence>
@@ -208,7 +316,7 @@ const Profile = () => {
   );
 };
 
-// --- Sub-components ---
+// --- Sub-components (Unchanged) ---
 
 const ProfileField = ({ label, value, icon, isReadOnly }) => (
     <div className="flex flex-col gap-1.5">
@@ -220,30 +328,6 @@ const ProfileField = ({ label, value, icon, isReadOnly }) => (
         </div>
     </div>
 );
-
-const StatusBadge = ({ status }) => {
-    const currentStatus = status || 'inactive';
-
-    const styles = {
-        active: "bg-green-100 text-green-700 border-green-200",
-        expiring_soon: "bg-yellow-100 text-yellow-700 border-yellow-200",
-        expired: "bg-red-100 text-red-700 border-red-200",
-        inactive: "bg-gray-100 text-gray-600 border-gray-200",
-    };
-    
-    const labels = {
-        active: "Active Plan",
-        expiring_soon: "Expiring Soon",
-        expired: "Plan Expired",
-        inactive: "No Active Plan",
-    };
-
-    return (
-        <span className={`px-4 py-1.5 rounded-full text-sm font-bold border ${styles[currentStatus] || styles.inactive}`}>
-            {labels[currentStatus] || "Inactive"}
-        </span>
-    );
-};
 
 // --- Edit Profile Modal ---
 const EditProfileModal = ({ user, onClose, setUser, variants, backdropVariants }) => {

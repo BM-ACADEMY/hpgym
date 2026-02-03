@@ -34,9 +34,22 @@ const userSchema = new mongoose.Schema({
             enum: ['active', 'expiring_soon', 'expired', 'inactive'],
             default: 'inactive'
         },
+        // Plan Info
+        planName: { type: String },
         startDate: { type: Date },
         endDate: { type: Date },
-        amount: { type: Number, default: 0 } // Added Amount here
+
+        billingDate: { type: Date },
+        
+        // Billing Info
+        billedBy: { type: String },
+        packageFee: { type: Number, default: 0 },
+        totalAmount: { type: Number, default: 0 },
+        paidAmount: { type: Number, default: 0 },
+        
+        paymentMode: { type: String },
+        
+        lastReminderDate: { type: Date }
     }
 }, { timestamps: true });
 

@@ -5,6 +5,7 @@
   "main": "server.js",
   "dependencies": {
     "accepts": "^2.0.0",
+    "axios": "^1.13.4",
     "bcryptjs": "^3.0.3",
     "body-parser": "^2.2.1",
     "bson": "^7.0.0",
