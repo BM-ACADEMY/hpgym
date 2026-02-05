@@ -2,7 +2,9 @@ import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import axiosInstance from '@/api/axiosInstance';
 import { Loader2, Printer, Share2 } from 'lucide-react';
-import logo from '@/assets/images/logo.png';
+import logo1 from '@/assets/images/logo.png';
+import logo from '@/assets/images/logoblack.jpeg';
+
 
 const Invoice = () => {
     const { id } = useParams();
@@ -77,7 +79,7 @@ const Invoice = () => {
                 {/* --- WATERMARK --- */}
                 <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-0">
                     <img 
-                        src={logo} 
+                        src={logo1} 
                         alt="Watermark" 
                         className="w-[60%] opacity-[0.03] grayscale"
                     />
