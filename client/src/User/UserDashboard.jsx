@@ -2,7 +2,7 @@
 import React from 'react';
 import { useAuth } from '../Context/Authcontext'; 
 import { NavLink, Outlet } from 'react-router-dom';
-import { User, Settings, LogOut, ShoppingBag, MessageCircle } from 'lucide-react'; // Removed LayoutDashboard icon
+import { User, Settings, LogOut, ShoppingBag, MessageCircle, Activity } from 'lucide-react'; // Removed LayoutDashboard icon
 
 const UserDashboard = () => {
     const { user, logout } = useAuth();
@@ -12,6 +12,7 @@ const UserDashboard = () => {
         // This makes it the default active link when landing on the dashboard.
         { name: "My Profile", path: "/user", icon: <User size={20} />, end: true },
 
+        { name: "Fitness Analytics", path: "/user/fitness", icon: <Activity size={20} /> },
 
         { name: "Testimonial", path: "/user/testimonial", icon: <MessageCircle size={20} /> },
     ];

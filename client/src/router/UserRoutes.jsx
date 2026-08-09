@@ -4,8 +4,7 @@ import { Routes, Route } from 'react-router-dom';
 import UserDashboard from '@/User/UserDashboard';
 import Profile from '@/User/Page/Profile';
 import Testimonial from '@/User/Page/Testimonial';
-
-
+import FitnessAnalysis from '@/User/Page/FitnessAnalysis';
 
 const UserRoutes = () => {
     return (
@@ -18,6 +17,8 @@ const UserRoutes = () => {
                 {/* Path: /user/testimonial */}
                 <Route path="testimonial" element={<Testimonial />} />
 
+                {/* Path: /user/fitness */}
+                <Route path="fitness" element={<FitnessAnalysis />} />
 
             </Route>
         </Routes>
