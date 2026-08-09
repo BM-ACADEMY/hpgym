@@ -8,13 +8,12 @@ import connectDB from './config/db.js';
 import { notFound, errorHandler } from './middleware/errorMiddleware.js';
 
 // Import project modules
-import hpgymRoutes from './projects/hpgym/js/index.js';
+import taskBoardRoutes from './projects/ts/taskBoardRoutes.js';
 
 dotenv.config();
 
 // Global variables
-const PORT = process.env.PORT || 5050;
-const CLIENT_URL = 'http://localhost:5173';
+const PORT = process.env.PORT || 442;
 
 // Connect to MongoDB
 connectDB();
@@ -27,7 +26,7 @@ app.use(helmet.crossOriginResourcePolicy({ policy: 'cross-origin' }));
 app.use(morgan('dev'));
 app.use(
   cors({
-    origin: CLIENT_URL,
+    origin: true,
     credentials: true,
   })
 );
@@ -41,12 +40,12 @@ app.get('/', (req, res) => {
 });
 
 // Link projects routes
-app.use('/api/hpgym', hpgymRoutes);
+app.use('/api/taskboard', taskBoardRoutes);
 
 // Error Handling Middlewares
 app.use(notFound);
 app.use(errorHandler);
 
 app.listen(PORT, () => {
-  console.log(`[Server] Running globally on port ${PORT} 🚀`);
+  console.log("ts structure runing");
 });
